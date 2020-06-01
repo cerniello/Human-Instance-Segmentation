@@ -1,20 +1,27 @@
-# Human-Instance-Segmentation
+# Human Instance Segmentation (given trajectories)
+
 ### Fabio Montello, Francesco Russo and Michele Cernigliaro
 
 Project for the course Advanced Machine Learning @LaSapienza
 
 In this repo we provide the code for Human-Instance-Segmentation from surveillance cameras.
-Our work is based on trying to track specific human instances annotations along a video sequence.
-The main implementation is based on [OSVOS-PyTorch](https://github.com/kmaninis/OSVOS-PyTorch) which implements the One-Shot-Video-Object-Segmentation algorithm (you may want to refer to the paper [here](https://arxiv.org/abs/1611.05198)
+Our work is based on trying to segment specific persons along a video sequence, given their trajectory annotations.
+
+The main implementation is based on [OSVOS-PyTorch](https://github.com/kmaninis/OSVOS-PyTorch) which implements the One-Shot-Video-Object-Segmentation algorithm (you may want to refer to the paper [here](https://arxiv.org/abs/1611.05198))
 
 The code is based on 2 steps:
 
-Given a video sequence:
+Given a video sequence (frames in .jpg format) and a trajectory dataset (see *first data setup* section):
 
-1a. Select a specific person (with certain pID)
-1b. Create ground truth annotations (binary masks in .png format) and JPEG images
-2a. Perform OSVOS online training with gt and original frame images
-2b. Perform the istance segmentation for the whole lenght of the person's frames.
+    1a. Select a specific person (with certain pID)
+    1b. Create ground truth annotations (binary masks in .png format) and JPEG images
+            - This procedure is done only if you have trajectory annotations
+    2a. Perform OSVOS online training with gt and original frame images
+    2b. Perform the istance segmentation for the whole lenght of the person's frames.
+    
+
+Our algorithm is suitable for the following video sequences datasets (with related annotations):
+- 
 
 ## Setup environment
 
@@ -27,20 +34,18 @@ pip install ..
 
 ## Download data
 
-- OSVOS PARENT MODEL
-    - 
-    - [COCO 2017 Val images [5K/1GB]](http://images.cocodataset.org/zips/val2017.zip)
-    - [COCOPersons Train Annotation (person_keypoints_train2017_pose2seg.json) [166MB]](https://github.com/liruilong940607/Pose2Seg/releases/download/data/person_keypoints_train2017_pose2seg.json)
-    - [COCOPersons Val Annotation (person_keypoints_val2017_pose2seg.json) [7MB]](https://github.com/liruilong940607/Pose2Seg/releases/download/data/person_keypoints_val2017_pose2seg.json)
+- OSVOS PARENT MODEL [here]()
     
 - VIDEO SEQUENCES
     - Other UCY
-    - [images [667MB] & annotations](https://cg.cs.tsinghua.edu.cn/dataset/form.html?dataset=ochuman)
+    
+- VIDEO SEQUENCES ANNOTATIONS
+    - i.e. annotations from [Trajnet](http://trajnet.stanford.edu/data.php?n=1)
     
     
 ## Setup data
 
-### data first setup
+### first data setup
 If you already have annotations and frames, you can skip this part and refer to the second setup.
 Otherwise, you will need a folder with the video sequence.
 
