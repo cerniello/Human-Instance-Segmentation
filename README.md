@@ -1,5 +1,14 @@
 # Human-Instance-Segmentation
+### Fabio Montello, Francesco Russo and Michele Cernigliaro
+
 Project for the course Advanced Machine Learning @LaSapienza
+
+In this repo we provide the code for Human-Instance-Segmentation from surveillance cameras.
+Our work is based on trying to track specific human instances annotations along a video sequence.
+The main implementation is based on [OSVOS-PyTorch](https://github.com/kmaninis/OSVOS-PyTorch) 
+
+The code is based on 2 steps:
+1. Find annotations
 
 ## Setup environment
 
@@ -24,7 +33,7 @@ pip install ..
     
 ## Setup data
 
-### First setup
+### data first setup
 If you already have annotations and frames, you can skip this part and refer to the second setup.
 Otherwise, you will need a folder with the video sequence
 
@@ -41,11 +50,10 @@ frame pID x  y
 10   1    3.4 12.8
 ```
 
-Where frame indicates the frame of the person with certain pID (person Identifier) and x y indicates the world coordinates.
-You can refer to [Trajnet](http://trajnet.stanford.edu) webpage
+Where frame indicates the frame of the person with certain pID (person Identifier) and (x,y) indicates his world coordinates within that frame. You can refer to [Trajnet](http://trajnet.stanford.edu) webpage for more details.
 
 
-### Second setup
+### data second setup
 
 After running the first script, your folder should be like this:
 
