@@ -32,7 +32,18 @@ Otherwise, you will need a folder with the video sequence
     ├── video_sequence_frames
     │   ├── frame1.jpg  
     │   ├── frame2.jpg
+    │   │   ├── ...
     ├── vide_sequence_person_annotations.csv
+
+The annotation structure in the .csv file should have the following:
+``` bash
+frame pID x  y
+10   1    3.4 12.8
+```
+
+Where frame indicates the frame of the person with certain pID (person Identifier) and x y indicates the world coordinates.
+You can refer to [Trajnet](http://trajnet.stanford.edu) webpage
+
 
 ### Second setup
 
@@ -47,15 +58,19 @@ After running the first script, your folder should be like this:
     │   ├── pID1  
     │   │   ├── 00000.jpg 
     │   │   ├── 00001.jpg
-    │   │   ├── 00002.jpg 
+    │   │   ├── 00002.jpg
+    │   │   ├── ...
     │   ├── pID7  
     │   │   ├── 00000.jpg
     │   │   ├── 00001.jpg 
-    │   │   ├── 00002.jpg 
+    │   │   ├── 00002.jpg
+    │   │   ├── ...
     ├── Annotations 
     │   ├── pID1  
     │   │   ├── 00004.png
     │   │   ├── 00010.png
+    │   │   ├── ...
     │   ├── pID7  
     │   │   ├── 00001.png
     │   │   ├── 00008.png
+    │   │   ├── ...
