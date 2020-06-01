@@ -131,6 +131,6 @@ Video Object Segmentation Without Temporal Information, Transactions of Pattern 
 [Sobral, Andrews and Bouwmans, Thierry - BGS Library: A Library Framework for Algorithm’s Evaluation in Foreground/Background Segmentation, 2014](https://www.researchgate.net/publication/259574448_BGS_Library_A_Library_Framework_for_Algorithm's_Evaluation_in_ForegroundBackground_Segmentation)
 
 ### Useful links
-[OSVOS PyTorch Implementation](https://github.com/kmaninis/OSVOS-PyTorch)
-[Mask RCNN Pytorch Implementation](https://github.com/spmallick/learnopencv/tree/master/PyTorch-Mask-RCNN)
-[BGSLibrary](https://github.com/andrewssobral/bgslibrary)
+[OSVOS PyTorch Implementation](https://github.com/kmaninis/OSVOS-PyTorch)   
+[Mask RCNN Pytorch Implementation](https://github.com/spmallick/learnopencv/tree/master/PyTorch-Mask-RCNN)   
+[BGSLibrary](https://github.com/andrewssobral/bgslibrary)   
