@@ -56,7 +56,7 @@ git clone https://github.com/cerniello/Human-Instance-Segmentation.git
     
 ## Setup data
 
-### first data setup
+### data preparation for the setup
 If you already have annotations and frames, you can skip this part and refer directly to the second setup.
 Otherwise, you will need a folder with the video sequence:
 
@@ -76,7 +76,7 @@ frame pID x  y
 Where frame indicates the frame of the person with certain pID (person Identifier) and (x,y) indicates his world coordinates within that frame. You can refer to [Trajnet](http://trajnet.stanford.edu) webpage for more details.
 
 
-### data second setup
+### data setup
 
 After running the first script, your folder should be like this:
 
