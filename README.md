@@ -134,5 +134,5 @@ Video Object Segmentation Without Temporal Information, Transactions of Pattern 
 [OSVOS PyTorch Implementation](https://github.com/kmaninis/OSVOS-PyTorch)   
 [Mask RCNN Pytorch Implementation](https://github.com/spmallick/learnopencv/tree/master/PyTorch-Mask-RCNN)   
 [BGSLibrary](https://github.com/andrewssobral/bgslibrary)
-[Parent model pretrained on DAVIS](https://data.vision.ee.ethz.ch/kmaninis/share/OSVOS/Downloads/models/pth_parent_model.zip)
-[Pedestrians in front of the Zara store in Makariou Street, Nicosia, Cyprus](https://repo.vi-seem.eu/bitstream/handle/21.15102/VISEEM-316/Zara.zip?sequence=1&isAllowed=y)
+[Parent model pretrained on DAVIS](https://data.vision.ee.ethz.ch/kmaninis/share/OSVOS/Downloads/models/pth_parent_model.zip)  
+[Video dataset - Pedestrians in front of the Zara store in Makariou Street, Nicosia, Cyprus](https://repo.vi-seem.eu/bitstream/handle/21.15102/VISEEM-316/Zara.zip?sequence=1&isAllowed=y)
