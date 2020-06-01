@@ -15,6 +15,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 
 # Custom includes (edited functions from OSVOS-Pytorch)
+import cv2
 from dataloaders import data_loader as db
 from dataloaders import custom_transforms as tr
 #from util import visualize as viz
@@ -233,6 +234,10 @@ with torch.no_grad():  # PyTorch 0.4.0 style
 
             # Save the result, attention to the index jj
             
+            # THRESHOLD 
+            # thr = 200
+            # ret,thresh = cv2.threshold(pred, thr, 255, cv2.THRESH_BINARY)
+
             sm.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), pred)
 
             if vis_res:
@@ -250,5 +255,6 @@ with torch.no_grad():  # PyTorch 0.4.0 style
                 ax_arr[1].imshow(gt_)
                 ax_arr[2].imshow(im_normalize(pred))
                 plt.pause(0.001)
+
 
 writer.close()
