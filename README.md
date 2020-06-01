@@ -11,14 +11,15 @@ The main implementation is based on [OSVOS-PyTorch](https://github.com/kmaninis/
 
 The code is based on 2 steps:
 
-Given a video sequence (frames in .jpg format) and a trajectory dataset (see *first data setup* section):
+Given a video sequence (frames in .jpg format) and a trajectory dataset (see **first data setup** section):
 
-    1a. Select a specific person (with certain pID)
+    1a. Choose a specific person within the video sequence (with a certain pID)
     1b. Create ground truth annotations (binary masks in .png format) and JPEG images
             - This procedure is done only if you have trajectory annotations
     2a. Perform OSVOS online training with gt and original frame images
     2b. Perform the istance segmentation for the whole lenght of the person's frames.
-    
+
+*Note*: the two tasks are separated. You can perform OSVOS with any other dataset following the **second data setup** section.
 
 Our work is suitable for the following video sequences datasets:
 
@@ -30,36 +31,43 @@ Our work is suitable for the following video sequences datasets:
 
 Install
 ``` bash
-pip install ..
-pip install ..
+pip install tensorboardx==2.0
+pip install scipy==1.2.1
+pip install pybgs==3.0.0
+```
 
+Copy this repository 
+``` bash
+git clone https://github.com/cerniello/Human-Instance-Segmentation.git
 ```
 
 ## Download data
 
-- OSVOS PARENT MODEL [here]()
+- OSVOS PARENT MODEL
+    - Download the [parent model](https://data.vision.ee.ethz.ch/kmaninis/share/OSVOS/Downloads/models/pth_parent_model.zip) and unzip it under `models/`
     
 - VIDEO SEQUENCES
-    - Other UCY
+    - We provide a demo with `crowds_zara02` video sequence (already inside `data/`)
     
 - VIDEO SEQUENCES ANNOTATIONS
-    - i.e. annotations from [Trajnet](http://trajnet.stanford.edu/data.php?n=1)
+    - we provide a demo with `crowds_zara02.txt`
+    - annotations datasets can be found at [Trajnet](http://trajnet.stanford.edu/data.php?n=1)
     
     
 ## Setup data
 
 ### first data setup
-If you already have annotations and frames, you can skip this part and refer to the second setup.
-Otherwise, you will need a folder with the video sequence.
+If you already have annotations and frames, you can skip this part and refer directly to the second setup.
+Otherwise, you will need a folder with the video sequence:
 
     data  
-    ├── video_sequence_frames
+    ├── crowds_zara02_frames
     │   ├── frame1.jpg  
     │   ├── frame2.jpg
     │   │   ├── ...
-    ├── vide_sequence_person_annotations.csv
+    ├── crowds_zara02.txt
 
-The annotation structure in the .csv file should have the following:
+The annotation structure in the .txt file should have the following format:
 ``` bash
 frame pID x  y
 10   1    3.4 12.8
@@ -76,7 +84,7 @@ After running the first script, your folder should be like this:
     ├── video_sequence_frames
     │   ├── frame1.jpg  
     │   ├── frame2.jpg
-    ├── vide_sequence_person_annotations.csv
+    ├── vide_sequence_person_annotations.txt
     ├── JPEGImages
     │   ├── pID1  
     │   │   ├── 00000.jpg 
