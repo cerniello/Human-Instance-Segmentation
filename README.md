@@ -117,5 +117,11 @@ After running the first script, your folder should be like this:
 ...
 ## Conclusions and Future work
 What we obtained, what we were expecting 
+
 ## References
-..
+[Sergi Caelles and Kevis-Kokitsi Maninis and Jordi Pont-Tuset and Laura Leal-Taix\'e and Daniel Cremers and Luc Van Gool - One-Shot Video Object Segmentation, Computer Vision and Pattern Recognition (CVPR), 2017](http://people.ee.ethz.ch/~cvlsegmentation/osvos/)
+[K.K. Maninis*, S. Caelles*, Y.Chen, J. Pont-Tuset, L. Leal-Taixé, D. Cremers, and L. Van Gool
+Video Object Segmentation Without Temporal Information, Transactions of Pattern Analysis and Machine Intelligence (T-PAMI), 2018.](http://people.ee.ethz.ch/~cvlsegmentation/osvos-s/)
+
+[OSVOS PyTorch Implementation](https://github.com/kmaninis/OSVOS-PyTorch)
+
