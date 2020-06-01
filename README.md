@@ -132,7 +132,5 @@ Video Object Segmentation Without Temporal Information, Transactions of Pattern 
 
 ### Useful links
 [OSVOS PyTorch Implementation](https://github.com/kmaninis/OSVOS-PyTorch)
-
 [Mask RCNN Pytorch Implementation](https://github.com/spmallick/learnopencv/tree/master/PyTorch-Mask-RCNN)
-
 [BGSLibrary](https://github.com/andrewssobral/bgslibrary)
