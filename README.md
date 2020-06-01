@@ -20,8 +20,11 @@ Given a video sequence (frames in .jpg format) and a trajectory dataset (see *fi
     2b. Perform the istance segmentation for the whole lenght of the person's frames.
     
 
-Our algorithm is suitable for the following video sequences datasets (with related annotations):
-- 
+Our work is suitable for the following video sequences datasets:
+
+    - UCY
+    - ETH
+
 
 ## Setup environment
 
