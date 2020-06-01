@@ -5,13 +5,20 @@ Project for the course Advanced Machine Learning @LaSapienza
 
 In this repo we provide the code for Human-Instance-Segmentation from surveillance cameras.
 Our work is based on trying to track specific human instances annotations along a video sequence.
-The main implementation is based on [OSVOS-PyTorch](https://github.com/kmaninis/OSVOS-PyTorch) 
+The main implementation is based on [OSVOS-PyTorch](https://github.com/kmaninis/OSVOS-PyTorch) which implements the One-Shot-Video-Object-Segmentation algorithm (you may want to refer to the paper [here](https://arxiv.org/abs/1611.05198)
 
 The code is based on 2 steps:
-1. Find annotations
+
+Given a video sequence:
+
+1a. Select a specific person (with certain pID)
+1b. Create ground truth annotations (binary masks in .png format) and JPEG images
+2a. Perform OSVOS online training with gt and original frame images
+2b. Perform the istance segmentation for the whole lenght of the person's frames.
 
 ## Setup environment
 
+Install
 ``` bash
 pip install ..
 pip install ..
@@ -35,7 +42,7 @@ pip install ..
 
 ### data first setup
 If you already have annotations and frames, you can skip this part and refer to the second setup.
-Otherwise, you will need a folder with the video sequence
+Otherwise, you will need a folder with the video sequence.
 
     data  
     ├── video_sequence_frames
