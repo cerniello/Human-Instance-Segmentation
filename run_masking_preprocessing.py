@@ -256,27 +256,27 @@ if __name__ == '__main__':
     DEBUG = args.debug
     DISTANCE = args.distance
 
-    print('Download model')
+    print(' - Download model')
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
     model.eval()
 
     data_path = OUTPUT_DIR
 
-    print('Create subfolders')
+    print(' - Create subfolders')
     os.makedirs(data_path + '/JPEGImages', exist_ok=True)
     os.makedirs(data_path + '/Annotations', exist_ok=True)
 
     data = pd.read_csv(TEXT_DIR, sep='\t', header=None)
     data.columns = ['frame', 'pID', 'x', 'y']
 
-    print('Selecting the pictures with id: ' + str(PID))
+    print(' - Selecting the pictures with id: ' + str(PID))
     m = mapper(data)
     data_pID, dict_masks_bb = frames_pID(pID=PID, start_frame=START_FRAME, output_path=OUTPUT_DIR,  frames_path=FRAMES_DIR, distance=DISTANCE)
 
     if(MASK_RCNN):
-        print('I will mask with mask RCNN')
+        print(' - I will mask with mask RCNN')
     else:
-        print('I will mask with BGS')
+        print(' - I will mask with BGS')
 
     if(MASK_RCNN):
         for key in dict_masks_bb.keys():
