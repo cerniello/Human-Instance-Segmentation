@@ -38,7 +38,7 @@ Install
 ``` bash
 pip install tensorboardx==2.0
 pip install scipy==1.2.1
-pip install pybgs==3.0.0
+pip install pybgs==3.0.0.post2
 ```
 
 Copy this repository 
