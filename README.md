@@ -49,7 +49,7 @@ git clone https://github.com/cerniello/Human-Instance-Segmentation.git
 ## Download data
 
 - OSVOS PARENT MODEL
-    - Download the [parent model](https://data.vision.ee.ethz.ch/kmaninis/share/OSVOS/Downloads/models/pth_parent_model.zip) trained on DAVIS-2016 dataset and unzip it under `models/`
+    - Download the [parent model](https://data.vision.ee.ethz.ch/kmaninis/share/OSVOS/Downloads/models/pth_parent_model.zip) pre-trained on DAVIS-2016 dataset and unzip it under `models/`
     
 - VIDEO SEQUENCES
     - We provide a demo with `crowds_zara02` video sequence (already inside `data/`)
