@@ -42,7 +42,8 @@ def parse_args():
                         '--epochs',
                         default=50,
                         type=int,
-                        help='Number of epochs for the online training')
+                        help='Number of epochs for the online training'+
+                             ' (note that the final nEpochs is epochs*nAvegrad)')
     parser.add_argument(
                         '--batch_size',
                         default=1,
@@ -157,7 +158,8 @@ if __name__ == '__main__':
   loss_tr = []
   aveGrad = 0
 
-  print('n. image for online training: {}, n. images for test: {}'.format(num_img_tr, num_img_ts))
+  print('n. batches per training epoch: {}, batchsize: {}' .format(num_img_tr, args.batch_size))
+  print('n. test images: {}'.format(num_img_ts))
 
   print("Start of Online Training, sequence: " + seq_name)
   start_time = timeit.default_timer()
