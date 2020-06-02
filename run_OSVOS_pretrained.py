@@ -44,9 +44,19 @@ def parse_args():
                         type=int,
                         help='Number of epochs for the online training')
     parser.add_argument(
+                        '--batch_size',
+                        default=1,
+                        type=int,
+                        help='Batch size')                       
+    parser.add_argument(
                         '--models_dir',
                         default="models",
                         help='where the parent model is located')
+    parser.add_argument(
+                        '--threshold',
+                        default=200,
+                        type=int,
+                        help='threshold for image to binary mask')
 
     args = parser.parse_args()
     return args
@@ -89,7 +99,7 @@ if __name__ == '__main__':
 
   # Parameters in p are used for the name of the model
   p = {
-      'trainBatch': 1,  # Number of Images in each mini-batch
+      'trainBatch': args.batch_size,  # Number of Images in each mini-batch
       }
   seed = 0
 
@@ -235,10 +245,12 @@ with torch.no_grad():  # PyTorch 0.4.0 style
             # Save the result, attention to the index jj
             
             # THRESHOLD 
-            # thr = 200
-            # ret,thresh = cv2.threshold(pred, thr, 255, cv2.THRESH_BINARY)
+            #ret, binary_mask = cv2.threshold(pred, args.threshold ,255,cv2.THRESH_BINARY)
 
             sm.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), pred)
+            
+            #sm.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask)
+            #cv2.imwrite(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask)
 
             if vis_res:
                 img_ = np.transpose(img.numpy()[jj, :, :, :], (1, 2, 0))
