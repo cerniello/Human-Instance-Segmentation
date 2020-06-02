@@ -49,7 +49,7 @@ git clone https://github.com/cerniello/Human-Instance-Segmentation.git
 ## Download data
 
 - OSVOS PARENT MODEL
-    - Download the [parent model](https://data.vision.ee.ethz.ch/kmaninis/share/OSVOS/Downloads/models/pth_parent_model.zip) and unzip it under `models/`
+    - Download the [parent model](https://data.vision.ee.ethz.ch/kmaninis/share/OSVOS/Downloads/models/pth_parent_model.zip) pre-trained on DAVIS-2016 dataset and unzip it under `models/`
     
 - VIDEO SEQUENCES
     - We provide a demo with `crowds_zara02` video sequence (already inside `data/`)
@@ -69,7 +69,7 @@ Otherwise, you will need a folder with the video sequence:
     ├── crowds_zara02_frames
     │   ├── frame1.jpg  
     │   ├── frame2.jpg
-    │   │   ├── ...
+    │   ├── ...
     ├── crowds_zara02.txt
 
 The annotation structure in the .txt file should have the following format:
