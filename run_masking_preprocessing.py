@@ -315,7 +315,7 @@ if __name__ == '__main__':
             final_img[y_sup:y_inf, x_sup:x_inf,
                       :] = img_output[y_sup:y_inf, x_sup:x_inf, :]
             plt.imsave(OUTPUT_DIR+'Annotations/pID'+str(PID)+'/'+dict_masks_bb[key]['id_annotation']+'.png',
-                       final_img.astype(np.uint8), cmap='binary')
+                       final_img.astype(np.uint8), cmap=cm.binary.reversed())
 
     if(DEBUG):
         os.makedirs(OUTPUT_DIR+'BoundingBox/', exist_ok=True)

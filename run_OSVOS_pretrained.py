@@ -23,6 +23,8 @@ import scipy.misc as sm
 import networks.vgg_osvos as vo
 from layers.osvos_layers import class_balanced_cross_entropy_loss
 from dataloaders.helpers import *
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 #from mypath import Path
 
 
@@ -264,10 +266,10 @@ with torch.no_grad():  # PyTorch 0.4.0 style
             # THRESHOLD
             ret, binary_mask = cv2.threshold(
                 pred, args.threshold, 255, cv2.THRESH_BINARY)
-            plt.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'),
-                       binary_mask.astype(np.uint8), cmap='binary')
-            # sm.imsave(os.path.join(results_dir, seq_name,
-            #                        os.path.basename(fname[jj]) + '.png'), pred)
+            # plt.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'),
+            #            binary_mask.astype(np.uint8), cmap=cm.binary.reversed())
+            sm.imsave(os.path.join(results_dir, seq_name,
+                                   os.path.basename(fname[jj]) + '.png'), pred)
 
             #sm.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask)
             #cv2.imwrite(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask)
