@@ -214,7 +214,7 @@ def frames_pID(pID, start_frame, output_path, frames_path):
 
   for idx, f in enumerate(data_tmp['frame']): #data_tmp['frame'].iloc[0], data_tmp['frame'].iloc[-1]
     #Copy and rename of the images from frames folder 
-    shutil.copy2(frames_path +  str(f) + ".jpg", output_path + '/JPEGImages/pID' +str(pID) + '/' + str(idx).zfill(5) + '.jpg')
+    shutil.copy2(frames_path + 'frame' + str(f) + ".jpg", output_path + '/JPEGImages/pID' +str(pID) + '/' + str(idx).zfill(5) + '.jpg')
 
     #Conversion from world coordinates of the ground truth to actual pixel coordinates 
     curr_x, curr_y = m.World2Pix([data_tmp.iloc[idx]['x'], data_tmp.iloc[idx]['y']])
@@ -245,19 +245,22 @@ if __name__ == '__main__':
     TEXT_DIR = args.text_folder
     START_FRAME = args.start_frame
 
+    print('Download model')
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
     model.eval()
 
     data_path = OUTPUT_DIR
 
+    print('Create subfolders')
     os.makedirs(data_path + '/JPEGImages', exist_ok=True)
     os.makedirs(data_path + '/Annotations', exist_ok=True)
 
     data = pd.read_csv(TEXT_DIR, sep='\t', header=None)
     data.columns=['frame', 'pID', 'x', 'y']
 
+    print('Selecting the pictures with id: '+ str(PID))
     m = mapper(data)
-    data_pID, dict_masks_bb = frames_pID(pID = PID, start_frame=START_FRAME, frame_path=FRAMES_DIR, output_path=OUTPUT_DIR)
+    data_pID, dict_masks_bb = frames_pID(pID = PID, start_frame=START_FRAME,output_path=OUTPUT_DIR,  frames_path=FRAMES_DIR)
     
     if(MASK_RCNN):
         for key in dict_masks_bb.keys():
@@ -276,9 +279,14 @@ if __name__ == '__main__':
         # LOBSTER 
 
         for frame_path in os.listdir(pathIn):
-            frame = cv2.imread(os.path.join(pathIn, frame_path))
-            img_output = algorithm.apply(frame)
-
+            try:
+                frame = cv2.imread(os.path.join(pathIn, frame_path))
+                img_output = algorithm.apply(frame)
+            except:
+                print(frame_path)
+                print(frame.shape)
+                pass
+            
         for key in dict_masks_bb.keys():
             frame = cv2.imread(os.path.join(pathIn, 'frame'+str(key)+'.jpg'))
             img_output = algorithm.apply(frame)
@@ -292,5 +300,4 @@ if __name__ == '__main__':
             imageio.imwrite(OUTPUT_DIR+'Annotations/pID'+str(PID)+'/'+dict_masks_bb[key]['id_annotation']+'.jpg',\
                             final_img.astype(np.uint8))
     
-    return 
 
