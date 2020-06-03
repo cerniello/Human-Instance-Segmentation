@@ -34,6 +34,7 @@ TEXT_DIR = './data/crowds_zara02.txt'
 START_FRAME = 0
 DEBUG = False
 DISTANCE = 40
+BBTHR = 0.5
 
 
 class mapper():
@@ -135,10 +136,13 @@ def parse_args():
                         help='Save bounding boxes')
     parser.add_argument('--distance',
                         default=40,
-                        help='Save bounding boxes')
+                        help='Euclidian distance threshold')
+    parser.add_argument('--bb_thr',
+                        default=0.6,
+                        help='Define the threshold for the bounding box')
     parser.add_argument('--homography',
-    					default=None,
-    					help='wether using homography matrix (wants the filepath) or not (None)')
+    			default=None,
+    			help='wether using homography matrix (wants the filepath) or not (None)')
 
     args = parser.parse_args()
     return args
@@ -275,7 +279,7 @@ def frames_pID(pID, start_frame, output_path, frames_path, distance):
                 
             # Extraction of the closest bounding box to the GT, with relative mask
             dist, mask, bb = find_bounding_box_mask(output_path + '/JPEGImages/pID' + str(pID) + '/' + str(idx).zfill(5) + '.jpg',
-                                                    curr_x, curr_y, threshold=0.20)
+                                                    curr_x, curr_y, threshold=BBTHR)
             if(dist < distance):
                 dict_masks_bb[f] = {'id_annotation': str(idx).zfill(
                     5), 'dist': dist, 'mask': mask, 'bb': bb, 'x_GT': curr_x, 'y_GT': curr_y}
@@ -300,6 +304,7 @@ if __name__ == '__main__':
     START_FRAME = args.start_frame
     DEBUG = args.debug
     DISTANCE = args.distance
+    BBTHR = args.bb_thr
 
     print(' - Download model')
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
