@@ -80,11 +80,11 @@ frame pID x  y
 10   1    3.4 12.8
 ```
 
+Where frame indicates the frame of the person with certain pID (person Identifier) and (x,y) indicates his world coordinates within that frame. You can refer i.e. to [Trajnet](http://trajnet.stanford.edu) webpage for more details.
+
+
 The folder homography matrix contains the 3x3 matrices H in order to perform World2Pix and Pix2World coordinates transformations. We took the matrices for ucy and eth sequences from [this repo](https://github.com/trungmanhhuynh/Scene-LSTM). 
 Notice that our code works also without homography matrix (approximating the coordinates conversion using olny the annotations file, even if it is highly reccomended to use them whenever provided). 
-
-Where frame indicates the frame of the person with certain pID (person Identifier) and (x,y) indicates his world coordinates within that frame. You can refer to [Trajnet](http://trajnet.stanford.edu) webpage for more details.
-
 
 ### Data setup
 
