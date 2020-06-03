@@ -22,7 +22,6 @@ import torchvision.transforms as T
 import pandas as pd
 from PIL import Image
 import imageio
-import pybgs
 import re
 
 
@@ -37,12 +36,12 @@ DISTANCE = 40
 
 
 class mapper():
-	"""
-	Very simple mapper using only proportions from the annotations dataframe (df)
+    """
+    Very simple mapper using only proportions from the annotations dataframe (df)
 	inputs:
 	- annotations (frame, pID, x, y) pandas dataframe
-	- H and W of the image
-	"""
+    - H and W of the image
+    """
     def __init__(self, df, H=576, W=720):
         minx, maxx = np.min(df.x), np.max(df.x)
         miny, maxy = np.min(df.y), np.max(df.y)
@@ -73,20 +72,18 @@ class mapper():
         return [xhat, yhat]
 
 class Homography_mapper():
-	"""
-	More complex mapper which uses homography transofmations
-	- Input: Homography matrix path (.txt format) 
-	"""
-    def __init__(self, 
-                 matrix_path='/content/Human-Instance-Segmentation/data/homograpy_matrix/ucy_zara02.txt'):
-
-      matrix = []
-
-      with open (matrix_path, 'r') as f:
-        for row in f.readlines():
-          matrix += [row.split()]
-
-      self.H = np.array(matrix, dtype=np.float32)
+    def __init__(self, matrix_path='/content/Human-Instance-Segmentation/data/homograpy_matrix/ucy_zara02.txt'):
+        """
+        More complex mapper which uses homography transofmations
+        - Input: Homography matrix path (.txt format)
+        """
+        matrix = []
+      
+        with open (matrix_path, 'r') as f:
+          for row in f.readlines():
+            matrix += [row.split()]
+            
+        self.H = np.array(matrix, dtype=np.float32)
 
     def World2Pix(self, xy_world):
         assert len(xy_world) == 2, "xy should be a point tuple/list"
@@ -319,9 +316,9 @@ if __name__ == '__main__':
 
     if args.homography == None:
 	    m = mapper(data)
-	else
-		m = Homography_mapper(args.homography)
-		
+    else:
+      m = Homography_mapper(args.homography)
+
     data_pID, dict_masks_bb = frames_pID(pID=PID, start_frame=START_FRAME, output_path=OUTPUT_DIR,  frames_path=FRAMES_DIR, distance=DISTANCE)
 
     if(MASK_RCNN):
