@@ -11,7 +11,7 @@ In this repo we provide the code for Human-Instance-Segmentation from surveillan
 Our work is based on trying to segment specific persons along a video sequence, given their trajectory annotations.
 
 ## Related work
-The main implementation is based on [OSVOS-PyTorch](https://github.com/kmaninis/OSVOS-PyTorch) which implements the One-Shot-Video-Object-Segmentation algorithm (you may want to refer to the paper [here](https://arxiv.org/abs/1611.05198))
+The main implementation is based on [OSVOS-PyTorch](https://github.com/kmaninis/OSVOS-PyTorch) code which implements the One-Shot-Video-Object-Segmentation algorithm (you may want to refer to the paper [here](https://arxiv.org/abs/1611.05198))
 
 ## Proposed method explained
 The code is based on 2 steps:
