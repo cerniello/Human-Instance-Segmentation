@@ -71,12 +71,16 @@ Otherwise, you will need a folder with the video sequence:
     │   ├── frame2.jpg
     │   ├── ...
     ├── crowds_zara02.txt
+    ├── homography_matrix
+    │   ├── ucy_zara02.txt
 
 The annotation structure in the .txt file should have the following format:
 ``` bash
 frame pID x  y
 10   1    3.4 12.8
 ```
+
+The folder homography matrix contains the 3x3 matrices H in order to perform World2Pix and Pix2World conversion. We took the code from [this repo](https://github.com/trungmanhhuynh/Scene-LSTM). It works also if it is no homography matrix provided (with less precise conversion).
 
 Where frame indicates the frame of the person with certain pID (person Identifier) and (x,y) indicates his world coordinates within that frame. You can refer to [Trajnet](http://trajnet.stanford.edu) webpage for more details.
 
