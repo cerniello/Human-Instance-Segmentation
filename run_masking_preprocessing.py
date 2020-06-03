@@ -23,6 +23,7 @@ import pandas as pd
 from PIL import Image
 import imageio
 import re
+from warnings import filterwarnings
 
 
 PID = 3
@@ -75,6 +76,7 @@ class Homography_mapper():
     def __init__(self, matrix_path='/content/Human-Instance-Segmentation/data/homograpy_matrix/ucy_zara02.txt'):
         """
         More complex mapper which uses homography transofmations
+        We took eth and UCY homography matrix at https://github.com/trungmanhhuynh/Scene-LSTM
         - Input: Homography matrix path (.txt format)
         """
         matrix = []
@@ -312,14 +314,21 @@ if __name__ == '__main__':
     data = pd.read_csv(TEXT_DIR, sep='\t', header=None)
     data.columns = ['frame', 'pID', 'x', 'y']
 
-    print(' - Selecting the pictures with id: ' + str(PID))
+    print(' - Selecting the pictures with pID: ' + str(PID))
+
 
     if args.homography == None:
-	    m = mapper(data)
-    else:
+      print(' - No homography matrix to be loaded - using poor approximations')
+      m = mapper(data)
+    else: 
       m = Homography_mapper(args.homography)
+      print(' - Homography matrix loaded')
 
+    print(' - Founding bounding boxes using mask RCNN')
+
+    filterwarnings('ignore') # filter deprecation warnings
     data_pID, dict_masks_bb = frames_pID(pID=PID, start_frame=START_FRAME, output_path=OUTPUT_DIR,  frames_path=FRAMES_DIR, distance=DISTANCE)
+    filterwarnings('default')
 
     if(MASK_RCNN):
         print(' - I will mask with mask RCNN')
@@ -341,7 +350,7 @@ if __name__ == '__main__':
         # MixtureOfGaussianV2BGS
         # .LBSimpleGaussian
         # LOBSTER
-
+        
         for frame_path in [f for f in os.listdir(pathIn) if re.match(r'[0-9]+.*\.jpg', f)]:
             try:
                 frame = cv2.imread(os.path.join(pathIn, frame_path))
@@ -366,6 +375,7 @@ if __name__ == '__main__':
                        final_img.astype(np.uint8), cmap=cm.binary.reversed())
 
     if(DEBUG):
+      # save original frames with bboxes to check if they are correct
         os.makedirs(OUTPUT_DIR+'BoundingBox/', exist_ok=True)
         for key in dict_masks_bb.keys():
             img = cv2.imread(FRAMES_DIR + 'frame' + str(key) + ".jpg")
