@@ -254,8 +254,8 @@ def frames_pID(pID, start_frame, output_path, frames_path, distance):
     data_tmp = data[data['pID'] == pID].copy()
     data_tmp['pID'] = data_tmp['pID'].apply(lambda x: int(x))
     data_tmp['frame'] = data_tmp['frame'].apply(lambda x: int(x))
-    data_tmp = data_tmp[(data_tmp['frame'] >= start_frame)
-                        & (data_tmp['frame'] < 350)]
+    data_tmp = data_tmp[(data_tmp['frame'] >= start_frame)]
+                        #& (data_tmp['frame'] < 350)]
 
     os.makedirs(output_path + '/JPEGImages/pID' + str(pID), exist_ok=True)
     os.makedirs(output_path + '/Annotations/pID' + str(pID), exist_ok=True)
