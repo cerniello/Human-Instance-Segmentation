@@ -81,7 +81,7 @@ frame pID x  y
 ```
 
 The folder homography matrix contains the 3x3 matrices H in order to perform World2Pix and Pix2World coordinates transformations. We took the matrices for ucy and eth sequences from [this repo](https://github.com/trungmanhhuynh/Scene-LSTM). 
-Notice that our code works also without homography matrix (using the annotations and poorer approximations). 
+Notice that our code works also without homography matrix (approximating the coordinates conversion using olny the annotations file, even if it is highly reccomended to use them whenever provided). 
 
 Where frame indicates the frame of the person with certain pID (person Identifier) and (x,y) indicates his world coordinates within that frame. You can refer to [Trajnet](http://trajnet.stanford.edu) webpage for more details.
 
