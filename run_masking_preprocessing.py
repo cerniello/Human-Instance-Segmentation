@@ -37,6 +37,12 @@ DISTANCE = 40
 
 
 class mapper():
+	"""
+	Very simple mapper using only proportions from the annotations dataframe (df)
+	inputs:
+	- annotations (frame, pID, x, y) pandas dataframe
+	- H and W of the image
+	"""
     def __init__(self, df, H=576, W=720):
         minx, maxx = np.min(df.x), np.max(df.x)
         miny, maxy = np.min(df.y), np.max(df.y)
@@ -66,6 +72,43 @@ class mapper():
 
         return [xhat, yhat]
 
+class Homography_mapper():
+	"""
+	More complex mapper which uses homography transofmations
+	- Input: Homography matrix path (.txt format) 
+	"""
+    def __init__(self, 
+                 matrix_path='/content/Human-Instance-Segmentation/data/homograpy_matrix/ucy_zara02.txt'):
+
+      matrix = []
+
+      with open (matrix_path, 'r') as f:
+        for row in f.readlines():
+          matrix += [row.split()]
+
+      self.H = np.array(matrix, dtype=np.float32)
+
+    def World2Pix(self, xy_world):
+        assert len(xy_world) == 2, "xy should be a point tuple/list"
+        # xy should be [x, y, 1]
+        xy_world += [1]
+        xy_world = np.array(xy_world)
+
+
+        xy_pixel = np.dot(np.linalg.inv(self.H), xy_world.T)
+
+        return [int(xy_pixel[0]), int(xy_pixel[1])]
+
+    def Pix2World(self, xy_pix):
+        assert len(xy_pix) == 2, "xy should be a point tuple/list"
+        # xy should be [x, y, 1] 
+        xy_pix += [1]
+        xy_pix = np.array(xy_pix)
+
+        xy_world = np.dot(self.H, xy_pix.T)
+
+        return [xy_world[0], xy_world[1]]
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Masking creating for OSVOS')
@@ -94,6 +137,9 @@ def parse_args():
     parser.add_argument('--distance',
                         default=40,
                         help='Save bounding boxes')
+    parser.add_argument('--homography',
+    					default=None,
+    					help='wether using homography matrix (wants the filepath) or not (None)')
 
     args = parser.parse_args()
     return args
@@ -270,7 +316,12 @@ if __name__ == '__main__':
     data.columns = ['frame', 'pID', 'x', 'y']
 
     print(' - Selecting the pictures with id: ' + str(PID))
-    m = mapper(data)
+
+    if args.homography == None:
+	    m = mapper(data)
+	else
+		m = Homography_mapper(args.homography)
+		
     data_pID, dict_masks_bb = frames_pID(pID=PID, start_frame=START_FRAME, output_path=OUTPUT_DIR,  frames_path=FRAMES_DIR, distance=DISTANCE)
 
     if(MASK_RCNN):
