@@ -119,7 +119,8 @@ def parse_args():
                         help="Person id to be selected from the dataframe")
     parser.add_argument(
         '--use_mask_rcnn',
-        default=False,
+        default='False',
+        type=str,
         help='Define the type of masking, available: mask RCNN or BGS')
     parser.add_argument('--output_folder',
                         default='./data/',
@@ -292,7 +293,7 @@ def frames_pID(pID, start_frame, output_path, frames_path, distance):
             dist, mask, bb = find_bounding_box_mask(output_path + '/JPEGImages/pID' + str(pID) + '/' + str(idx).zfill(5) + '.jpg',
                                                     curr_x, curr_y, threshold=BBTHR)
             if(dist < distance):
-                print('     -> Annotation found in frame', f)
+                print(' - Annotation found in frame ', f)
                 dict_masks_bb[f] = {'id_annotation': str(idx).zfill(
                     5), 'dist': dist, 'mask': mask, 'bb': bb, 'x_GT': curr_x, 'y_GT': curr_y}
 
@@ -326,7 +327,7 @@ def frames_pID(pID, start_frame, output_path, frames_path, distance):
                 
                 #print(output_path + 'JPEGImages/pID' + str(pID) + '/' + str(actual_idx).zfill(5) + '.jpg')                
                 if(dist < DISTANCE_SUBFRAMES):
-                    print('     -> Annotation found in frame', actual_frame)
+                    print(' - Annotation found in frame ', actual_frame)
                     dict_masks_bb[actual_frame] = {'id_annotation': str(actual_idx).zfill(
                         5), 'dist': DISTANCE_SUBFRAMES, 'mask': mask, 'bb': bb, 'x_GT': curr_x, 'y_GT': curr_y}
         
@@ -353,41 +354,41 @@ if __name__ == '__main__':
     BBTHR = args.bb_thr
     MORE_FRAMES = args.more_frames
 
-    print(' -> Download model')
+    print(' - Download model')
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
     model.eval()
 
     data_path = OUTPUT_DIR
 
-    print(' -> Create subfolders')
+    print(' - Create subfolders')
     os.makedirs(data_path + '/JPEGImages', exist_ok=True)
     os.makedirs(data_path + '/Annotations', exist_ok=True)
 
     data = pd.read_csv(TEXT_DIR, sep='\t', header=None)
     data.columns = ['frame', 'pID', 'x', 'y']
 
-    print(' -> Selecting the pictures with pID: ' + str(PID))
+    print(' - Selecting the pictures with pID: ' + str(PID))
 
 
     if args.homography == None:
-      print(' -> No homography matrix to be loaded - using poor approximations')
+      print(' - No homography matrix to be loaded - using poor approximations')
       m = mapper(data)
     else: 
       m = Homography_mapper(args.homography)
-      print(' -> Homography matrix loaded')
+      print(' - Homography matrix loaded')
 
-    print(' -> First step: finding bounding boxes using mask RCNN')
+    print(' - First step: finding bounding boxes using mask RCNN')
 
     filterwarnings('ignore') # filter deprecation warnings
     data_pID, dict_masks_bb = frames_pID(pID=PID, start_frame=START_FRAME, output_path=OUTPUT_DIR,  frames_path=FRAMES_DIR, distance=DISTANCE)
     filterwarnings('default')
 
-    if(MASK_RCNN):
-        print(' -> Second step: mask using mask RCNN')
+    if(MASK_RCNN == 'True'):
+        print(' - Second step: mask using mask RCNN')
     else:
-        print(' -> Second step: mask using BGS')
+        print(' - Second step: mask using BGS')
 
-    if(MASK_RCNN):
+    if(MASK_RCNN == 'True'):
         for key in dict_masks_bb.keys():
             plt.imsave(OUTPUT_DIR+'Annotations/pID'+str(PID)+'/'+dict_masks_bb[key]['id_annotation']+'.png',
                        dict_masks_bb[key]['mask'].astype(np.uint8), cmap=cm.binary.reversed())
@@ -423,8 +424,10 @@ if __name__ == '__main__':
             final_img = np.zeros(img_output.shape)
             final_img[y_sup:y_inf, x_sup:x_inf,
                       :] = img_output[y_sup:y_inf, x_sup:x_inf, :]
+            # plt.imsave(OUTPUT_DIR+'Annotations/pID'+str(PID)+'/'+dict_masks_bb[key]['id_annotation']+'.png',
+            #            dict_masks_bb[key]['mask'].astype(np.uint8))
             plt.imsave(OUTPUT_DIR+'Annotations/pID'+str(PID)+'/'+dict_masks_bb[key]['id_annotation']+'.png',
-                       final_img.astype(np.uint8), cmap=cm.binary.reversed())
+                       final_img.astype(np.uint8))
 
     if(DEBUG):
       # save original frames with bboxes to check if they are correct
