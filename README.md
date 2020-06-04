@@ -3,8 +3,6 @@
 ### Fabio Montello, Francesco Russo and Michele Cernigliaro
 Project for the course Advanced Machine Learning @LaSapienza
 
-## Abstract
-
 ## Introduction
 
 In this repo we provide the code for Human-Instance-Segmentation from surveillance cameras.
