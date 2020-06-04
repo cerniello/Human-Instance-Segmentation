@@ -170,9 +170,9 @@ if __name__ == '__main__':
     loss_tr = []
     aveGrad = 0
 
-    print(' - n. batches per training epoch: {}, batchsize: {}' .format(
+    print(' -> n. batches per training epoch: {}, batchsize: {}' .format(
         num_img_tr, args.batch_size))
-    print(' - n. test images: {}'.format(num_img_ts))
+    print(' -> n. test images: {}'.format(num_img_ts))
 
     print(" - Start of Online Training, sequence: " + seq_name)
     start_time = timeit.default_timer()
@@ -206,8 +206,8 @@ if __name__ == '__main__':
                 running_loss_tr /= num_img_tr
                 loss_tr.append(running_loss_tr)
 
-                print(' - [Epoch: %d, numImages: %5d]' % (epoch+1, ii + 1))
-                print(' - Loss: %f' % running_loss_tr)
+                print(' -> [Epoch: %d, numImages: %5d]' % (epoch+1, ii + 1))
+                print(' -> Loss: %f' % running_loss_tr)
                 writer.add_scalar('data/total_loss_epoch',
                                   running_loss_tr, epoch)
 
@@ -230,8 +230,8 @@ if __name__ == '__main__':
                 models_dir, seq_name + '_epoch-'+str(epoch) + '.pth'))
 
     stop_time = timeit.default_timer()
-    print(' - Online training time: ' + str(stop_time - start_time) + 'seconds')
-    print(' - Online training time: ' +
+    print(' -> Online training time: ' + str(stop_time - start_time) + 'seconds')
+    print(' -> Online training time: ' +
           str((stop_time - start_time)/60) + ' minutes')
 
     #### RUNNING OSVOS ON THE WHOLE SEQUENCE ####
@@ -243,7 +243,7 @@ if vis_res:
     plt.ion()
     f, ax_arr = plt.subplots(1, 3)
 
-print(' - Testing Network')
+print(' -> Testing Network')
 with torch.no_grad():  # PyTorch 0.4.0 style
     # Main Testing Loop
     for ii, sample_batched in enumerate(testloader):
