@@ -125,8 +125,10 @@ First, in order to create the annotations for the person with i.e. pID=7, run ru
 python run_masking_preprocessing.py --pID=7 --frames_folder=../path/crowds02frames/ --text_folder=../path/crowds_annotations.txt --homography=../path/ucy_zara02.txt
 ```
 
-For all the list of commands you can run it with --help
-The script will perform the task 1a and 1b and will create person pID7 sequences in `JPEGImages/` and related gt binary masks in `Annotations/`
+The script will perform the task 1a and 1b and will create person pID7 sequences in `JPEGImages/` and related gt binary masks in `Annotations/`.
+
+For further explanations run it with --help.
+
 
 #### Run OSVOS algorithm
 
@@ -135,6 +137,8 @@ python run_OSVOS_pretrained.py --seq_name=pID7 --epochs=200 --output_folder="res
 ```
 
 The algorithm will run with Cuda, if possible. An highly number of epochs is suggested. 
+
+For further explanations run it with --help.
 
 ## References
 [S. Caelles*, K.K. Maninis*, J. Pont-Tuset, L. Leal-Taixé, D. Cremers, and L. Van Gool - 
