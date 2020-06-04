@@ -290,6 +290,7 @@ def frames_pID(pID, start_frame, output_path, frames_path, distance):
             dist, mask, bb = find_bounding_box_mask(output_path + '/JPEGImages/pID' + str(pID) + '/' + str(idx).zfill(5) + '.jpg',
                                                     curr_x, curr_y, threshold=BBTHR)
             if(dist < distance):
+                print(' - Annotation found in frame ', f)
                 dict_masks_bb[f] = {'id_annotation': str(idx).zfill(
                     5), 'dist': dist, 'mask': mask, 'bb': bb, 'x_GT': curr_x, 'y_GT': curr_y}
 
@@ -323,6 +324,7 @@ def frames_pID(pID, start_frame, output_path, frames_path, distance):
                 
                 #print(output_path + 'JPEGImages/pID' + str(pID) + '/' + str(actual_idx).zfill(5) + '.jpg')                
                 if(dist < DISTANCE_SUBFRAMES):
+                    print(' - Annotation found in frame ', actual_frame)
                     dict_masks_bb[actual_frame] = {'id_annotation': str(actual_idx).zfill(
                         5), 'dist': DISTANCE_SUBFRAMES, 'mask': mask, 'bb': bb, 'x_GT': curr_x, 'y_GT': curr_y}
         
