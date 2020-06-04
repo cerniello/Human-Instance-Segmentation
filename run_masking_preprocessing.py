@@ -34,7 +34,9 @@ TEXT_DIR = './data/crowds_zara02.txt'
 START_FRAME = 0
 DEBUG = False
 DISTANCE = 40
+DISTANCE_SUBFRAMES = 20
 BBTHR = 0.5
+MORE_FRAMES = 0
 
 
 class mapper():
@@ -140,9 +142,13 @@ def parse_args():
     parser.add_argument('--bb_thr',
                         default=0.6,
                         help='Define the threshold for the bounding box')
+    parser.add_argument('--more_frames',
+                        default=0,
+                        type=int,
+                        help='if >0, tries to get more gt frames')
     parser.add_argument('--homography',
-    			default=None,
-    			help='wether using homography matrix (wants the filepath) or not (None)')
+                        default=None,
+                        help='wether using homography matrix (wants the filepath) or not (None)')
 
     args = parser.parse_args()
     return args
@@ -266,8 +272,11 @@ def frames_pID(pID, start_frame, output_path, frames_path, distance):
 
     dict_masks_bb = {}
 
+    starting_frame = data_tmp['frame'].iloc[0]
+    ending_frame = data_tmp['frame'].iloc[-1]
+
     # data_tmp['frame'].iloc[0], data_tmp['frame'].iloc[-1]
-    for idx, f in enumerate(range(data_tmp['frame'].iloc[0], data_tmp['frame'].iloc[-1])):
+    for idx, f in enumerate(range(starting_frame, ending_frame)):
         # Copy and rename of the images from frames folder
         shutil.copy2(frames_path + 'frame' + str(f) + ".jpg", output_path +
                      '/JPEGImages/pID' + str(pID) + '/' + str(idx).zfill(5) + '.jpg')
@@ -284,6 +293,39 @@ def frames_pID(pID, start_frame, output_path, frames_path, distance):
                 dict_masks_bb[f] = {'id_annotation': str(idx).zfill(
                     5), 'dist': dist, 'mask': mask, 'bb': bb, 'x_GT': curr_x, 'y_GT': curr_y}
 
+            
+            if MORE_FRAMES > 3:
+              MORE_FRAMES == 3
+
+            valid_frames = os.listdir(output_path + '/JPEGImages/pID' + str(pID))
+            valid_frames = list(map(lambda x: int(x.split('.')[0]), valid_frames))
+
+            valid_idx_range = list(range(-MORE_FRAMES, MORE_FRAMES+1))
+            valid_idx_range.remove(0) # 0 is the actual frame!
+
+            #DEBUG print('here:', valid_idx_range)
+            for idx_subframe in valid_idx_range:
+              
+              actual_frame = f + idx_subframe
+              actual_idx = actual_frame - starting_frame
+
+             # print(idx, f, idx_subframe, actual_idx, actual_frame)
+             # print(actual_frame, valid_frames[0])
+
+              if actual_idx in valid_frames:
+                #print(idx, f, idx_subframe, actual_idx, actual_frame)
+
+                curr_x, curr_y = m.World2Pix([data_tmp[data_tmp['frame'] == f]['x'], data_tmp[data_tmp['frame'] == f]['y']])
+                
+                # Extraction of the closest bounding box to the GT, with relative mask
+                dist, mask, bb = find_bounding_box_mask(output_path + '/JPEGImages/pID' + str(pID) + '/' + str(actual_idx).zfill(5) + '.jpg',
+                                                        curr_x, curr_y, threshold=BBTHR)
+                
+                #print(output_path + 'JPEGImages/pID' + str(pID) + '/' + str(actual_idx).zfill(5) + '.jpg')                
+                if(dist < DISTANCE_SUBFRAMES):
+                    dict_masks_bb[actual_frame] = {'id_annotation': str(actual_idx).zfill(
+                        5), 'dist': DISTANCE_SUBFRAMES, 'mask': mask, 'bb': bb, 'x_GT': curr_x, 'y_GT': curr_y}
+        
     # return of the dataset with the frames having onli the pID selected
     return data_tmp, dict_masks_bb
 
@@ -305,6 +347,7 @@ if __name__ == '__main__':
     DEBUG = args.debug
     DISTANCE = args.distance
     BBTHR = args.bb_thr
+    MORE_FRAMES = args.more_frames
 
     print(' - Download model')
     model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
@@ -329,16 +372,16 @@ if __name__ == '__main__':
       m = Homography_mapper(args.homography)
       print(' - Homography matrix loaded')
 
-    print(' - Founding bounding boxes using mask RCNN')
+    print(' - First step: finding bounding boxes using mask RCNN')
 
     filterwarnings('ignore') # filter deprecation warnings
     data_pID, dict_masks_bb = frames_pID(pID=PID, start_frame=START_FRAME, output_path=OUTPUT_DIR,  frames_path=FRAMES_DIR, distance=DISTANCE)
     filterwarnings('default')
 
     if(MASK_RCNN):
-        print(' - I will mask with mask RCNN')
+        print(' - Second step: mask using mask RCNN')
     else:
-        print(' - I will mask with BGS')
+        print(' - Second step: mask using BGS')
 
     if(MASK_RCNN):
         for key in dict_masks_bb.keys():
