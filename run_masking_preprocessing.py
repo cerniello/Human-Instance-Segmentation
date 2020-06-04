@@ -138,9 +138,11 @@ def parse_args():
                         help='Save bounding boxes')
     parser.add_argument('--distance',
                         default=40,
+                        type=int,
                         help='Euclidian distance threshold')
     parser.add_argument('--bb_thr',
                         default=0.6,
+                        type=float,
                         help='Define the threshold for the bounding box')
     parser.add_argument('--more_frames',
                         default=0,
