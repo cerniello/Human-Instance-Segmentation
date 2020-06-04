@@ -1,4 +1,3 @@
-# Package
 from __future__ import division
 
 import os
@@ -6,289 +5,429 @@ import argparse
 import socket
 import timeit
 from datetime import datetime
-from tensorboardX import SummaryWriter
 
-# PyTorch
+# import pytorch/opencv/matplotlib and other random utils
 import torch
-import torch.optim as optim
-from torchvision import transforms
-from torch.utils.data import DataLoader
-
-# Custom includes (edited functions from OSVOS-Pytorch)
+import torchvision
+import torch
 import cv2
-from dataloaders import data_loader as db
-from dataloaders import custom_transforms as tr
-#from util import visualize as viz
-import scipy.misc as sm
-import networks.vgg_osvos as vo
-from layers.osvos_layers import class_balanced_cross_entropy_loss
-from dataloaders.helpers import *
+import random
+import os
+import shutil
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-#from mypath import Path
+import pybgs as bgs
+import torchvision.transforms as T
+import pandas as pd
+from PIL import Image
+import imageio
+import re
+from warnings import filterwarnings
+
+
+PID = 3
+MASK_RCNN = False
+FRAMES_DIR = './data/crowds_zara02_frames/'
+OUTPUT_DIR = './data/'
+TEXT_DIR = './data/crowds_zara02.txt'
+START_FRAME = 0
+DEBUG = False
+DISTANCE = 40
+DISTANCE_SUBFRAMES = 20
+BBTHR = 0.5
+MORE_FRAMES = 0
+
+
+class mapper():
+    """
+    Very simple mapper using only proportions from the annotations dataframe (df)
+	inputs:
+	- annotations (frame, pID, x, y) pandas dataframe
+    - H and W of the image
+    """
+    def __init__(self, df, H=576, W=720):
+        minx, maxx = np.min(df.x), np.max(df.x)
+        miny, maxy = np.min(df.y), np.max(df.y)
+
+        self.H = H
+        self.W = W
+        self.Rx = (W - 0)/(maxx - minx)
+        self.Ry = (H - 0)/(maxy - miny)
+
+    def World2Pix(self, xy_coord):
+        assert len(xy_coord) == 2, "xy should be a point tuple/list"
+        x = xy_coord[0]
+        y = xy_coord[1]
+
+        xhat = x * self.Rx
+        yhat = self.H - y * self.Ry
+
+        return [int(xhat), int(yhat)]
+
+    def Pix2World(self, xy_coord):
+        assert len(xy_coord) == 2, "xy should be a point tuple/list"
+        x = xy_coord[0]
+        y = xy_coord[1]
+
+        xhat = x / self.Rx
+        yhat = (self.H - y) / self.Ry
+
+        return [xhat, yhat]
+
+class Homography_mapper():
+    def __init__(self, matrix_path='/content/Human-Instance-Segmentation/data/homograpy_matrix/ucy_zara02.txt'):
+        """
+        More complex mapper which uses homography transofmations
+        We took eth and UCY homography matrix at https://github.com/trungmanhhuynh/Scene-LSTM
+        - Input: Homography matrix path (.txt format)
+        """
+        matrix = []
+      
+        with open (matrix_path, 'r') as f:
+          for row in f.readlines():
+            matrix += [row.split()]
+            
+        self.H = np.array(matrix, dtype=np.float32)
+
+    def World2Pix(self, xy_world):
+        assert len(xy_world) == 2, "xy should be a point tuple/list"
+        # xy should be [x, y, 1]
+        xy_world += [1]
+        xy_world = np.array(xy_world)
+
+
+        xy_pixel = np.dot(np.linalg.inv(self.H), xy_world.T)
+
+        return [int(xy_pixel[0]), int(xy_pixel[1])]
+
+    def Pix2World(self, xy_pix):
+        assert len(xy_pix) == 2, "xy should be a point tuple/list"
+        # xy should be [x, y, 1] 
+        xy_pix += [1]
+        xy_pix = np.array(xy_pix)
+
+        xy_world = np.dot(self.H, xy_pix.T)
+
+        return [xy_world[0], xy_world[1]]
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='OSVOS running demo')
-    parser.add_argument('--seq_name',
-                        default="pID3",
-                        help="person sequence to be trained and tested on OSVOS")
+    parser = argparse.ArgumentParser(description='Masking creating for OSVOS')
+    parser.add_argument('--pID',
+                        default=3,
+                        help="Person id to be selected from the dataframe")
     parser.add_argument(
-        '--data_folder',
-        default="data",
-        help='where is located the data folder')
+        '--use_mask_rcnn',
+        default=False,
+        help='Define the type of masking, available: mask RCNN or BGS')
     parser.add_argument('--output_folder',
-                        default="results",
-                        help='where the results will be located')
-    parser.add_argument(
-        '--epochs',
-        default=50,
-        type=int,
-        help='Number of epochs for the online training' +
-        ' (note that the final nEpochs is epochs*nAvegrad)')
-    parser.add_argument(
-        '--batch_size',
-        default=1,
-        type=int,
-        help='Batch size')
-    parser.add_argument(
-        '--models_dir',
-        default="models",
-        help='where the parent model is located')
-    parser.add_argument(
-        '--threshold',
-        default=200,
-        type=int,
-        help='threshold for image to binary mask')
+                        default='./data/',
+                        help='Where the results will be located')
+    parser.add_argument('--frames_folder',
+                        default='./data/crowds_zara02_frames/',
+                        help='Folder where the frames are contained')
+    parser.add_argument('--text_folder',
+                        default='./data/crowds_zara02.txt',
+                        help='Folder where the frame annotations are contained')
+    parser.add_argument('--start_frame',
+                        default=0,
+                        help='Frame from which starting the annotation')
+    parser.add_argument('--debug',
+                        default=False,
+                        help='Save bounding boxes')
+    parser.add_argument('--distance',
+                        default=40,
+                        help='Euclidian distance threshold')
+    parser.add_argument('--bb_thr',
+                        default=0.6,
+                        help='Define the threshold for the bounding box')
+    parser.add_argument('--more_frames',
+                        default=0,
+                        type=int,
+                        help='if >0, tries to get more gt frames')
+    parser.add_argument('--homography',
+                        default=None,
+                        help='wether using homography matrix (wants the filepath) or not (None)')
 
     args = parser.parse_args()
     return args
 
 
-if __name__ == '__main__':
+COCO_INSTANCE_CATEGORY_NAMES = [
+    '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
+    'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
+    'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+    'elephant', 'bear', 'zebra', 'giraffe', 'N/A', 'backpack', 'umbrella', 'N/A', 'N/A',
+    'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
+    'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
+    'bottle', 'N/A', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl',
+    'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
+    'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'N/A', 'dining table',
+    'N/A', 'N/A', 'toilet', 'N/A', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+    'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'N/A', 'book',
+    'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+]
 
+
+def get_prediction(img_path, threshold):
+    """
+    get bboxes and segmentations of the image inside img_path
+ 
+    """
+    
+    img = Image.open(img_path)               # load the image
+    transform = T.Compose([T.ToTensor()])    # pytorch tensor object
+    img = transform(img)                     # transform img to tensor
+    pred = model([img])                      # mask RCNN
+    
+    # get predictions
+    pred_score = list(pred[0]['scores'].detach().numpy())
+    # objectiveness check for each prediction 
+    pred_t = [pred_score.index(x) for x in pred_score if x > threshold][-1]
+    
+    masks = (pred[0]['masks'] > 0.5).squeeze().detach().cpu().numpy()
+    pred_class = [COCO_INSTANCE_CATEGORY_NAMES[i]
+                  for i in list(pred[0]['labels'].numpy())]
+    pred_boxes = [[(i[0], i[1]), (i[2], i[3])]
+                  for i in list(pred[0]['boxes'].detach().numpy())]
+    masks = masks[:pred_t+1]
+    pred_boxes = pred_boxes[:pred_t+1]
+    pred_class = pred_class[:pred_t+1]
+    return masks, pred_boxes, pred_class
+
+
+def instance_segmentation_api(img_path, threshold=0.5, rect_th=1, text_size=2, text_th=1):
+    """
+    instance_segmentation_api
+      parameters:
+        - img_path - path to input image
+      method:
+        - prediction is obtained by get_prediction
+        - each mask is given random color
+        - each mask is added to the image in the ration 1:0.8 with opencv
+        - final output is displayed
+    """
+    masks, boxes, pred_cls = get_prediction(img_path, threshold)
+    img = cv2.imread(img_path)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    for i in range(len(masks)):
+        if(pred_cls[i] == 'person'):
+            rgb_mask = random_colour_masks(masks[i])
+            img = cv2.addWeighted(img, 1, rgb_mask, 0.2, 0)
+
+            cv2.rectangle(img, boxes[i][0], boxes[i][1],
+                          color=(0, 255, 0), thickness=rect_th)
+            #cv2.circle(img, (379, 346), radius=2, color=(255, 0, 0), thickness=-1)
+
+    plt.figure(figsize=(20, 30))
+    plt.imshow(img)
+    plt.xticks([])
+    plt.yticks([])
+    plt.show()
+
+
+def find_bounding_box_mask(img_path, x_gt, y_gt, threshold=0.5):
+    masks, boxes, pred_cls = get_prediction(
+        img_path, threshold)  # pred mask, box and class
+    #img = cv2.imread(img_path)
+    #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    dist_to_comp = 999999999
+    final_mask = []
+    final_bb = []
+
+    for i in range(len(boxes)):
+        if(pred_cls[i] == 'person'):
+
+            bb_x_sup = (boxes[i][0][0] + boxes[i][1][0])/2
+            bb_y_sup = boxes[i][0][1]
+
+            # dist measure
+            dist = np.sqrt((x_gt - bb_x_sup)**2 + (y_gt - bb_y_sup)**2)
+
+            if(dist < dist_to_comp):
+                dist_to_comp = dist
+                final_mask = masks[i]
+                final_bb = boxes[i]
+
+    return dist_to_comp, final_mask, final_bb
+
+
+def frames_pID(pID, start_frame, output_path, frames_path, distance):
+
+    data_tmp = data[data['pID'] == pID].copy()
+    data_tmp['pID'] = data_tmp['pID'].apply(lambda x: int(x))
+    data_tmp['frame'] = data_tmp['frame'].apply(lambda x: int(x))
+    data_tmp = data_tmp[(data_tmp['frame'] >= start_frame)]
+                        #& (data_tmp['frame'] < 350)]
+
+    os.makedirs(output_path + '/JPEGImages/pID' + str(pID), exist_ok=True)
+    os.makedirs(output_path + '/Annotations/pID' + str(pID), exist_ok=True)
+
+    dict_masks_bb = {}
+
+    starting_frame = data_tmp['frame'].iloc[0]
+    ending_frame = data_tmp['frame'].iloc[-1]
+
+    # data_tmp['frame'].iloc[0], data_tmp['frame'].iloc[-1]
+    for idx, f in enumerate(range(starting_frame, ending_frame)):
+        # Copy and rename of the images from frames folder
+        shutil.copy2(frames_path + 'frame' + str(f) + ".jpg", output_path +
+                     '/JPEGImages/pID' + str(pID) + '/' + str(idx).zfill(5) + '.jpg')
+
+    # for idx, f in enumerate(data_tmp['frame']):
+        if(f in list(data_tmp['frame'])):
+            # Conversion from world coordinates of the ground truth to actual pixel coordinates
+            curr_x, curr_y = m.World2Pix([data_tmp[data_tmp['frame'] == f]['x'], data_tmp[data_tmp['frame'] == f]['y']])
+                
+            # Extraction of the closest bounding box to the GT, with relative mask
+            dist, mask, bb = find_bounding_box_mask(output_path + '/JPEGImages/pID' + str(pID) + '/' + str(idx).zfill(5) + '.jpg',
+                                                    curr_x, curr_y, threshold=BBTHR)
+            if(dist < distance):
+                dict_masks_bb[f] = {'id_annotation': str(idx).zfill(
+                    5), 'dist': dist, 'mask': mask, 'bb': bb, 'x_GT': curr_x, 'y_GT': curr_y}
+
+            
+            if MORE_FRAMES > 3:
+              MORE_FRAMES == 3
+
+            valid_frames = os.listdir(output_path + '/JPEGImages/pID' + str(pID))
+            valid_frames = list(map(lambda x: int(x.split('.')[0]), valid_frames))
+
+            valid_idx_range = list(range(-MORE_FRAMES, MORE_FRAMES+1))
+            valid_idx_range.remove(0) # 0 is the actual frame!
+
+            #DEBUG print('here:', valid_idx_range)
+            for idx_subframe in valid_idx_range:
+              
+              actual_frame = f + idx_subframe
+              actual_idx = actual_frame - starting_frame
+
+             # print(idx, f, idx_subframe, actual_idx, actual_frame)
+             # print(actual_frame, valid_frames[0])
+
+              if actual_idx in valid_frames:
+                #print(idx, f, idx_subframe, actual_idx, actual_frame)
+
+                curr_x, curr_y = m.World2Pix([data_tmp[data_tmp['frame'] == f]['x'], data_tmp[data_tmp['frame'] == f]['y']])
+                
+                # Extraction of the closest bounding box to the GT, with relative mask
+                dist, mask, bb = find_bounding_box_mask(output_path + '/JPEGImages/pID' + str(pID) + '/' + str(actual_idx).zfill(5) + '.jpg',
+                                                        curr_x, curr_y, threshold=BBTHR)
+                
+                #print(output_path + 'JPEGImages/pID' + str(pID) + '/' + str(actual_idx).zfill(5) + '.jpg')                
+                if(dist < DISTANCE_SUBFRAMES):
+                    dict_masks_bb[actual_frame] = {'id_annotation': str(actual_idx).zfill(
+                        5), 'dist': DISTANCE_SUBFRAMES, 'mask': mask, 'bb': bb, 'x_GT': curr_x, 'y_GT': curr_y}
+        
+    # return of the dataset with the frames having onli the pID selected
+    return data_tmp, dict_masks_bb
+
+
+if __name__ == '__main__':
+    # get the pretrained model from torchvision.models
+    # Note: pretrained=True will get the pretrained weights for the model.
+    # model.eval() to use the model for inference
     working_path = os.getcwd()  # /content/path/
 
     args = parse_args()
 
-    # sequence name i.e. "pID3"
-    seq_name = args.seq_name
+    PID = int(args.pID)
+    MASK_RCNN = args.use_mask_rcnn
+    OUTPUT_DIR = args.output_folder
+    FRAMES_DIR = args.frames_folder
+    TEXT_DIR = args.text_folder
+    START_FRAME = args.start_frame
+    DEBUG = args.debug
+    DISTANCE = args.distance
+    BBTHR = args.bb_thr
+    MORE_FRAMES = args.more_frames
 
-    # data dir
-    db_root_dir = os.path.join(working_path, args.data_folder)
+    print(' - Download model')
+    model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
+    model.eval()
 
-    # result dirs
-    results_dir = os.path.join(working_path, args.output_folder)
-    if not os.path.exists(results_dir):
-        os.makedirs(results_dir)
+    data_path = OUTPUT_DIR
 
-    os.makedirs(os.path.join(results_dir, seq_name), exist_ok=True)
+    print(' - Create subfolders')
+    os.makedirs(data_path + '/JPEGImages', exist_ok=True)
+    os.makedirs(data_path + '/Annotations', exist_ok=True)
 
-    # models dir
-    models_dir = os.path.join(working_path, args.models_dir)
+    data = pd.read_csv(TEXT_DIR, sep='\t', header=None)
+    data.columns = ['frame', 'pID', 'x', 'y']
 
-    nEpochs = args.epochs
-
-    vis_net = 0  # Visualize the network?
-    vis_res = 0  # Visualize the results?
-    nAveGrad = 5  # Average the gradient every nAveGrad iterations
-    nEpochs = nEpochs * nAveGrad  # Number of epochs for training
-    snapshot = nEpochs  # Store a model every snapshot epochs
-    parentEpoch = 240
-
-    epochs_snap = [
-        epoch+1 for epoch in range(nEpochs) if epoch % (nEpochs//20) == (nEpochs//20 - 1)]
-    print(" - Online training snapshots every:", epochs_snap)
-
-    # Parameters in p are used for the name of the model
-    p = {
-        'trainBatch': args.batch_size,  # Number of Images in each mini-batch
-    }
-    seed = 0
-
-    parentModelName = 'parent'
-    # Select which GPU, -1 if CPU
-    gpu_id = 0
-    device = torch.device("cuda:"+str(gpu_id)
-                          if torch.cuda.is_available() else "cpu")
-
-    # Network definition
-    net = vo.OSVOS(pretrained=0, models_dir=models_dir)
-    net.load_state_dict(torch.load(os.path.join(models_dir, parentModelName+'_epoch-'+str(parentEpoch-1)+'.pth'),
-                                   map_location=lambda storage, loc: storage))
-
-    # Logging into Tensorboard
-    log_dir = os.path.join(models_dir, 'runs', datetime.now().strftime(
-        '%b%d_%H-%M-%S') + '_' + socket.gethostname()+'-'+seq_name)
-    writer = SummaryWriter(log_dir=log_dir)
-
-    net.to(device)  # PyTorch 0.4.0 style
-
-    # Visualize the network
-    if vis_net:
-        x = torch.randn(1, 3, 480, 854)
-        x.requires_grad_()
-        x = x.to(device)
-        y = net.forward(x)
-        g = viz.make_dot(y, net.state_dict())
-        g.view()
-
-    # Use the following optimizer
-    lr = 1e-8
-    wd = 0.0002
-    optimizer = optim.SGD([
-        {'params': [pr[1] for pr in net.stages.named_parameters(
-        ) if 'weight' in pr[0]], 'weight_decay': wd},
-        {'params': [pr[1] for pr in net.stages.named_parameters()
-                    if 'bias' in pr[0]], 'lr': lr * 2},
-        {'params': [pr[1] for pr in net.side_prep.named_parameters(
-        ) if 'weight' in pr[0]], 'weight_decay': wd},
-        {'params': [pr[1] for pr in net.side_prep.named_parameters()
-                    if 'bias' in pr[0]], 'lr': lr*2},
-        {'params': [pr[1] for pr in net.upscale.named_parameters()
-                    if 'weight' in pr[0]], 'lr': 0},
-        {'params': [pr[1] for pr in net.upscale_.named_parameters()
-                    if 'weight' in pr[0]], 'lr': 0},
-        {'params': net.fuse.weight, 'lr': lr/100, 'weight_decay': wd},
-        {'params': net.fuse.bias, 'lr': 2*lr/100},
-    ], lr=lr, momentum=0.9)
-
-    db_train = db.dataloader(
-        train=True, db_root_dir=db_root_dir, transform=tr.ToTensor(), seq_name=seq_name)
-    trainloader = DataLoader(
-        db_train, batch_size=p['trainBatch'], shuffle=True, num_workers=1)
-
-    # Testing dataset and its iterator
-    #db_test = db.DAVIS2016(train=False, db_root_dir=db_root_dir, transform=tr.ToTensor(), seq_name=seq_name)
-    db_test = db.dataloader(train=False, db_root_dir=db_root_dir,
-                            transform=tr.ToTensor(), seq_name=seq_name)
-    testloader = DataLoader(db_test, batch_size=1,
-                            shuffle=False, num_workers=1)
-
-    num_img_tr = len(trainloader)
-    num_img_ts = len(testloader)
-    loss_tr = []
-    aveGrad = 0
-
-    print(' - n. batches per training epoch: {}, batchsize: {}' .format(
-        num_img_tr, args.batch_size))
-    print(' - n. test images: {}'.format(num_img_ts))
-
-    print(" - Start of Online Training, sequence: " + seq_name)
-    start_time = timeit.default_timer()
-    # Main Training and Testing Loop
-    for epoch in range(0, nEpochs):
-        # One training epoch
-        running_loss_tr = 0
-        np.random.seed(seed + epoch)
-        for ii, sample_batched in enumerate(trainloader):
-
-            inputs, gts = sample_batched['image'], sample_batched['gt']
-
-            # print('-----')
-            # print(inputs.shape)
-            # print(gts.shape)
-            # print('-----')
-
-            # Forward-Backward of the mini-batch
-            inputs.requires_grad_()
-            inputs, gts = inputs.to(device), gts.to(device)
-
-            outputs = net.forward(inputs)
-
-            # Compute the fuse loss
-            loss = class_balanced_cross_entropy_loss(
-                outputs[-1], gts, size_average=False)
-            running_loss_tr += loss.item()  # PyTorch 0.4.0 style
-
-            # Print stuff
-            if epoch % (nEpochs//20) == (nEpochs//20 - 1):
-                running_loss_tr /= num_img_tr
-                loss_tr.append(running_loss_tr)
-
-                print(' - [Epoch: %d, numImages: %5d]' % (epoch+1, ii + 1))
-                print(' - Loss: %f' % running_loss_tr)
-                writer.add_scalar('data/total_loss_epoch',
-                                  running_loss_tr, epoch)
-
-            # Backward the averaged gradient
-            loss /= nAveGrad
-            loss.backward()
-            aveGrad += 1
-
-            # Update the weights once in nAveGrad forward passes
-            if aveGrad % nAveGrad == 0:
-                writer.add_scalar('data/total_loss_iter',
-                                  loss.item(), ii + num_img_tr * epoch)
-                optimizer.step()
-                optimizer.zero_grad()
-                aveGrad = 0
-
-        # Save the model
-        if (epoch % snapshot) == snapshot - 1 and epoch != 0:
-            torch.save(net.state_dict(), os.path.join(
-                models_dir, seq_name + '_epoch-'+str(epoch) + '.pth'))
-
-    stop_time = timeit.default_timer()
-    print(' - Online training time: ' + str(stop_time - start_time) + 'seconds')
-    print(' - Online training time: ' +
-          str((stop_time - start_time)/60) + ' minutes')
-
-    #### RUNNING OSVOS ON THE WHOLE SEQUENCE ####
-
-# Testing Phase
-if vis_res:
-    import matplotlib.pyplot as plt
-    plt.close("all")
-    plt.ion()
-    f, ax_arr = plt.subplots(1, 3)
-
-print(' - Testing Network')
-with torch.no_grad():  # PyTorch 0.4.0 style
-    # Main Testing Loop
-    for ii, sample_batched in enumerate(testloader):
-
-        img, gt, fname = sample_batched['image'], sample_batched['gt'], sample_batched['fname']
-
-        # Forward of the mini-batch
-        inputs, gts = img.to(device), gt.to(device)
-
-        outputs = net.forward(inputs)
-
-        for jj in range(int(inputs.size()[0])):
-            pred = np.transpose(
-                outputs[-1].cpu().data.numpy()[jj, :, :, :], (1, 2, 0))
-            pred = 1 / (1 + np.exp(-pred))
-            pred = np.squeeze(pred)
-
-            # Save the result, attention to the index jj
-
-            # THRESHOLD
-            ret, binary_mask = cv2.threshold(
-                pred, args.threshold, 255, cv2.THRESH_BINARY)
-            # plt.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'),
-            #            binary_mask.astype(np.uint8), cmap=cm.binary.reversed())
-            sm.imsave(os.path.join(results_dir, seq_name,
-                                   os.path.basename(fname[jj]) + '.png'), pred)
-
-            #sm.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask)
-            #cv2.imwrite(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask)
-
-            if vis_res:
-                img_ = np.transpose(img.numpy()[jj, :, :, :], (1, 2, 0))
-                gt_ = np.transpose(gt.numpy()[jj, :, :, :], (1, 2, 0))
-                gt_ = np.squeeze(gt)
-                # Plot the particular example
-                ax_arr[0].cla()
-                ax_arr[1].cla()
-                ax_arr[2].cla()
-                ax_arr[0].set_title('Input Image')
-                ax_arr[1].set_title('Ground Truth')
-                ax_arr[2].set_title('Detection')
-                ax_arr[0].imshow(im_normalize(img_))
-                ax_arr[1].imshow(gt_)
-                ax_arr[2].imshow(im_normalize(pred))
-                plt.pause(0.001)
+    print(' - Selecting the pictures with pID: ' + str(PID))
 
 
-writer.close()
+    if args.homography == None:
+      print(' - No homography matrix to be loaded - using poor approximations')
+      m = mapper(data)
+    else: 
+      m = Homography_mapper(args.homography)
+      print(' - Homography matrix loaded')
+
+    print(' - First step: finding bounding boxes using mask RCNN')
+
+    filterwarnings('ignore') # filter deprecation warnings
+    data_pID, dict_masks_bb = frames_pID(pID=PID, start_frame=START_FRAME, output_path=OUTPUT_DIR,  frames_path=FRAMES_DIR, distance=DISTANCE)
+    filterwarnings('default')
+
+    if(MASK_RCNN):
+        print(' - Second step: mask using mask RCNN')
+    else:
+        print(' - Second step: mask using BGS')
+
+    if(MASK_RCNN):
+        for key in dict_masks_bb.keys():
+            plt.imsave(OUTPUT_DIR+'Annotations/pID'+str(PID)+'/'+dict_masks_bb[key]['id_annotation']+'.png',
+                       dict_masks_bb[key]['mask'].astype(np.uint8), cmap=cm.binary.reversed())
+    else:
+        pathIn = FRAMES_DIR
+
+        algorithm = bgs.LBAdaptiveSOM()
+        # PixelBasedAdaptiveSegmenter
+        # MultiLayerBGS
+        # LBAdaptiveSOM
+        # DPWrenGABGS
+        # MixtureOfGaussianV2BGS
+        # .LBSimpleGaussian
+        # LOBSTER
+        
+        for frame_path in [f for f in os.listdir(pathIn) if re.match(r'[0-9]+.*\.jpg', f)]:
+            try:
+                frame = cv2.imread(os.path.join(pathIn, frame_path))
+                img_output = algorithm.apply(frame)
+            except:
+                print(frame_path)
+                print(frame.shape)
+                pass
+
+        for key in dict_masks_bb.keys():
+            frame = cv2.imread(os.path.join(pathIn, 'frame'+str(key)+'.jpg'))
+            img_output = algorithm.apply(frame)
+            x_sup = int(dict_masks_bb[key]['bb'][0][0])
+            y_sup = int(dict_masks_bb[key]['bb'][0][1])
+            x_inf = int(dict_masks_bb[key]['bb'][1][0])
+            y_inf = int(dict_masks_bb[key]['bb'][1][1])
+
+            final_img = np.zeros(img_output.shape)
+            final_img[y_sup:y_inf, x_sup:x_inf,
+                      :] = img_output[y_sup:y_inf, x_sup:x_inf, :]
+            plt.imsave(OUTPUT_DIR+'Annotations/pID'+str(PID)+'/'+dict_masks_bb[key]['id_annotation']+'.png',
+                       final_img.astype(np.uint8), cmap=cm.binary.reversed())
+
+    if(DEBUG):
+      # save original frames with bboxes to check if they are correct
+        os.makedirs(OUTPUT_DIR+'BoundingBox/', exist_ok=True)
+        for key in dict_masks_bb.keys():
+            img = cv2.imread(FRAMES_DIR + 'frame' + str(key) + ".jpg")
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            cv2.rectangle(img, dict_masks_bb[key]['bb'][0], dict_masks_bb[key]['bb'][1], color=(
+                0, 255, 0), thickness=2)
+
+            os.makedirs(OUTPUT_DIR+'BoundingBox/pID' +
+                        str(PID)+'/', exist_ok=True)
+            plt.imsave(OUTPUT_DIR+'BoundingBox/pID'+str(PID)+'/'+dict_masks_bb[key]['id_annotation']+'.jpg',
+                       img)
