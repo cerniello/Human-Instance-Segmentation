@@ -52,7 +52,7 @@ git clone https://github.com/cerniello/Human-Instance-Segmentation.git
     - Download the [parent model](https://data.vision.ee.ethz.ch/kmaninis/share/OSVOS/Downloads/models/pth_parent_model.zip) pre-trained on DAVIS-2016 dataset and unzip it under `models/`
     
 - VIDEO SEQUENCES
-    - We provide a demo with `crowds_zara02` video sequence (already inside `data/`)
+    - We provide a demo with `crowds_zara02` video sequence. The frames inside the folder should be in .jpg format
     
 - VIDEO SEQUENCES ANNOTATIONS
     - we provide a demo with `crowds_zara02.txt`
@@ -116,12 +116,25 @@ After running the first script, your folder should be like this:
     │   │   ├── 00008.png
     │   │   ├── ...
 
-## Experimental results
-...
-## Dataset and Benchmark
-...
-## Conclusions and Future work
-What we obtained, what we were expecting 
+## Run the demo!
+
+#### Create JPEGImages and Binary masks
+First, in order to create the annotations for the person with i.e. pID=7, run run_masking_preprocessing.py :
+
+```
+python run_masking_preprocessing.py --pID=7 --frames_folder=../path/crowds02frames/ --text_folder=../path/crowds_annotations.txt --homography=../path/ucy_zara02.txt
+```
+
+For all the list of commands you can run it with --help
+The script will perform the task 1a and 1b and will create person pID7 sequences in `JPEGImages/` and related gt binary masks in `Annotations/`
+
+#### Run OSVOS algorithm
+
+```
+python run_OSVOS_pretrained.py --seq_name=pID7 --epochs=200 --output_folder="results" --batch_size=2
+```
+
+The algorithm will run with Cuda, if possible. An highly number of epochs is suggested. 
 
 ## References
 [S. Caelles*, K.K. Maninis*, J. Pont-Tuset, L. Leal-Taixé, D. Cremers, and L. Van Gool - 
