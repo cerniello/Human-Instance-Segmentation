@@ -264,12 +264,10 @@ with torch.no_grad():  # PyTorch 0.4.0 style
             # Save the result, attention to the index jj
 
             # THRESHOLD
-            ret, binary_mask = cv2.threshold(
-                pred, args.threshold, 255, cv2.THRESH_BINARY)
-            # plt.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'),
-            #            binary_mask.astype(np.uint8), cmap=cm.binary.reversed())
-            sm.imsave(os.path.join(results_dir, seq_name,
-                                   os.path.basename(fname[jj]) + '.png'), pred)
+            ret, binary_mask = cv2.threshold(pred, args.threshold/255, 1, cv2.THRESH_BINARY)
+            plt.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask.astype(np.uint8), cmap=cm.binary.reversed())
+            # sm.imsave(os.path.join(results_dir, seq_name,
+            #                        os.path.basename(fname[jj]) + '.png'), pred)
 
             #sm.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask)
             #cv2.imwrite(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask)
