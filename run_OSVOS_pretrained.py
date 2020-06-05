@@ -1,14 +1,18 @@
-# Package
+################# OSVOS ALGORITHM RUN #################
+##### THE CODE RELIES ON PyTorch-OSVOS           #####
+##### implementation which you can counsult at   #####
+##### https://github.com/kmaninis/OSVOS-PyTorch  #####
 from __future__ import division
 
 import os
 import argparse
-import socket
+import 
+
 import timeit
 from datetime import datetime
-from tensorboardX import SummaryWriter
+from tensorboardX import SummaryWriter # tensorboard
 
-# PyTorch
+# PyTorch libraries 
 import torch
 import torch.optim as optim
 from torchvision import transforms
@@ -16,8 +20,8 @@ from torch.utils.data import DataLoader
 
 # Custom includes (edited functions from OSVOS-Pytorch)
 import cv2
-from dataloaders import data_loader as db
-from dataloaders import custom_transforms as tr
+from dataloaders import data_loader as db # our dataloader
+from dataloaders import custom_transforms as tr # OSVOS-Pytorch utilities
 #from util import visualize as viz
 import scipy.misc as sm
 import networks.vgg_osvos as vo
@@ -68,29 +72,30 @@ def parse_args():
 if __name__ == '__main__':
 
     working_path = os.getcwd()  # /content/path/
-
+    
+    # lod arg parser
     args = parse_args()
 
     # sequence name i.e. "pID3"
     seq_name = args.seq_name
 
-    # data dir
+    # load data dir
     db_root_dir = os.path.join(working_path, args.data_folder)
 
-    # result dirs
+    # load results dir and make the folder
     results_dir = os.path.join(working_path, args.output_folder)
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
-
+    
+    # make results_dir/PIDx
     os.makedirs(os.path.join(results_dir, seq_name), exist_ok=True)
 
     # models dir
     models_dir = os.path.join(working_path, args.models_dir)
-
+    
+    # load nEpochs
     nEpochs = args.epochs
 
-    vis_net = 0  # Visualize the network?
-    vis_res = 0  # Visualize the results?
     nAveGrad = 5  # Average the gradient every nAveGrad iterations
     nEpochs = nEpochs * nAveGrad  # Number of epochs for training
     snapshot = nEpochs  # Store a model every snapshot epochs
@@ -124,16 +129,8 @@ if __name__ == '__main__':
 
     net.to(device)  # PyTorch 0.4.0 style
 
-    # Visualize the network
-    if vis_net:
-        x = torch.randn(1, 3, 480, 854)
-        x.requires_grad_()
-        x = x.to(device)
-        y = net.forward(x)
-        g = viz.make_dot(y, net.state_dict())
-        g.view()
 
-    # Use the following optimizer
+    # SGD optimizer with momentum and weight decay
     lr = 1e-8
     wd = 0.0002
     optimizer = optim.SGD([
@@ -175,7 +172,9 @@ if __name__ == '__main__':
     print(' -> n. test images: {}'.format(num_img_ts))
 
     print(" - Start of Online Training, sequence: " + seq_name)
+   
     start_time = timeit.default_timer()
+    
     # Main Training and Testing Loop
     for epoch in range(0, nEpochs):
         # One training epoch
@@ -185,10 +184,6 @@ if __name__ == '__main__':
 
             inputs, gts = sample_batched['image'], sample_batched['gt']
 
-            # print('-----')
-            # print(inputs.shape)
-            # print(gts.shape)
-            # print('-----')
 
             # Forward-Backward of the mini-batch
             inputs.requires_grad_()
@@ -196,12 +191,12 @@ if __name__ == '__main__':
 
             outputs = net.forward(inputs)
 
-            # Compute the fuse loss
+            # Compute the fuse loss (balanced cross entropy loss)
             loss = class_balanced_cross_entropy_loss(
                 outputs[-1], gts, size_average=False)
             running_loss_tr += loss.item()  # PyTorch 0.4.0 style
 
-            # Print stuff
+            # Print from time to time
             if epoch % (nEpochs//20) == (nEpochs//20 - 1):
                 running_loss_tr /= num_img_tr
                 loss_tr.append(running_loss_tr)
@@ -234,14 +229,8 @@ if __name__ == '__main__':
     print(' -> Online training time: ' +
           str((stop_time - start_time)/60) + ' minutes')
 
-    #### RUNNING OSVOS ON THE WHOLE SEQUENCE ####
-
-# Testing Phase
-if vis_res:
-    import matplotlib.pyplot as plt
-    plt.close("all")
-    plt.ion()
-    f, ax_arr = plt.subplots(1, 3)
+#### RUNNING OSVOS ON THE WHOLE SEQUENCE to get the annotations ####
+#### annotations will be stored in results_dir/pIDx folder
 
 print(' -> Testing Network')
 with torch.no_grad():  # PyTorch 0.4.0 style
@@ -272,21 +261,5 @@ with torch.no_grad():  # PyTorch 0.4.0 style
             #sm.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask)
             #cv2.imwrite(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask)
 
-            if vis_res:
-                img_ = np.transpose(img.numpy()[jj, :, :, :], (1, 2, 0))
-                gt_ = np.transpose(gt.numpy()[jj, :, :, :], (1, 2, 0))
-                gt_ = np.squeeze(gt)
-                # Plot the particular example
-                ax_arr[0].cla()
-                ax_arr[1].cla()
-                ax_arr[2].cla()
-                ax_arr[0].set_title('Input Image')
-                ax_arr[1].set_title('Ground Truth')
-                ax_arr[2].set_title('Detection')
-                ax_arr[0].imshow(im_normalize(img_))
-                ax_arr[1].imshow(gt_)
-                ax_arr[2].imshow(im_normalize(pred))
-                plt.pause(0.001)
-
-
+# tensorboard writer close
 writer.close()
