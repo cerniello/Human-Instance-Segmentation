@@ -4,6 +4,7 @@
 ##### https://github.com/kmaninis/OSVOS-PyTorch  #####
 from __future__ import division
 
+# Import modules
 import os
 import argparse
 import socket
