@@ -6,7 +6,7 @@ import socket
 import timeit
 from datetime import datetime
 
-# import pytorch/opencv/matplotlib and other random utils
+# import pytorch/opencv/matplotlib and other utils
 import torch
 import torchvision
 import torch
@@ -157,6 +157,7 @@ def parse_args():
     return args
 
 
+# Even if we will need only the person tag, all the categories of the COCO dataset are needed, we hard code them here
 COCO_INSTANCE_CATEGORY_NAMES = [
     '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
     'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
@@ -174,22 +175,15 @@ COCO_INSTANCE_CATEGORY_NAMES = [
 
 
 def get_prediction(img_path, threshold):
-    """
-    get_prediction
-      parameters:
-        - img_path - path of the input image
-      method:
-        - Image is obtained from the image path
-        - the image is converted to image tensor using PyTorch's Transforms
-        - image is passed through the model to get the predictions
-        - masks, classes and bounding boxes are obtained from the model and soft masks are made binary(0 or 1) on masks
-          ie: eg. segment of cat is made 1 and rest of the image is made 0
-
-    """
+    # Open the image and convert it to tensor
     img = Image.open(img_path)
     transform = T.Compose([T.ToTensor()])
     img = transform(img)
+
+    # Get the prediction of the image from the model 
     pred = model([img])
+    
+    # Detach scores, masks, classes and bounding box
     pred_score = list(pred[0]['scores'].detach().numpy())
     pred_t = [pred_score.index(x) for x in pred_score if x > threshold][-1]
     masks = (pred[0]['masks'] > 0.5).squeeze().detach().cpu().numpy()
@@ -200,60 +194,31 @@ def get_prediction(img_path, threshold):
     masks = masks[:pred_t+1]
     pred_boxes = pred_boxes[:pred_t+1]
     pred_class = pred_class[:pred_t+1]
+
     return masks, pred_boxes, pred_class
-
-
-def instance_segmentation_api(img_path, threshold=0.5, rect_th=1, text_size=2, text_th=1):
-    """
-    instance_segmentation_api
-      parameters:
-        - img_path - path to input image
-      method:
-        - prediction is obtained by get_prediction
-        - each mask is given random color
-        - each mask is added to the image in the ration 1:0.8 with opencv
-        - final output is displayed
-    """
-    masks, boxes, pred_cls = get_prediction(img_path, threshold)
-    img = cv2.imread(img_path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-    for i in range(len(masks)):
-        if(pred_cls[i] == 'person'):
-            rgb_mask = random_colour_masks(masks[i])
-            img = cv2.addWeighted(img, 1, rgb_mask, 0.2, 0)
-
-            cv2.rectangle(img, boxes[i][0], boxes[i][1],
-                          color=(0, 255, 0), thickness=rect_th)
-            #cv2.circle(img, (379, 346), radius=2, color=(255, 0, 0), thickness=-1)
-
-    plt.figure(figsize=(20, 30))
-    plt.imshow(img)
-    plt.xticks([])
-    plt.yticks([])
-    plt.show()
 
 
 def find_bounding_box_mask(img_path, x_gt, y_gt, threshold=0.5):
 
+    # Get the prediction on the image with the above mentioned function
     masks, boxes, pred_cls = get_prediction(
-        img_path, threshold)  # pred mask, box and class
-    #img = cv2.imread(img_path)
-    #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_path, threshold) 
 
     dist_to_comp = 999999999
     final_mask = []
     final_bb = []
 
-    for i in range(len(boxes)):
-        if(pred_cls[i] == 'person'):
+    for i in range(len(boxes)): # For every predicted box
+        if(pred_cls[i] == 'person'): # if it has a person class (we don't care about other objects)
 
+            # get the top-centered point
             bb_x_sup = (boxes[i][0][0] + boxes[i][1][0])/2
             bb_y_sup = boxes[i][0][1]
 
-            # dist measure
+            # Compute the distance between the bounding box top-center point and the given person ID position (x_GT and y_GT)
             dist = np.sqrt((x_gt - bb_x_sup)**2 + (y_gt - bb_y_sup)**2)
 
+            # If the distance is the shortest, we save it, with the mask and the bounding box
             if(dist < dist_to_comp):
                 dist_to_comp = dist
                 final_mask = masks[i]
@@ -264,12 +229,13 @@ def find_bounding_box_mask(img_path, x_gt, y_gt, threshold=0.5):
 
 def frames_pID(pID, start_frame, output_path, frames_path, distance):
 
+    # Retrieve the images of a given person id in the dataset
     data_tmp = data[data['pID'] == pID].copy()
     data_tmp['pID'] = data_tmp['pID'].apply(lambda x: int(x))
     data_tmp['frame'] = data_tmp['frame'].apply(lambda x: int(x))
     data_tmp = data_tmp[(data_tmp['frame'] >= start_frame)]
-                        #& (data_tmp['frame'] < 350)]
 
+    # Prepare the folders
     os.makedirs(output_path + '/JPEGImages/pID' + str(pID), exist_ok=True)
     os.makedirs(output_path + '/Annotations/pID' + str(pID), exist_ok=True)
 
@@ -278,13 +244,12 @@ def frames_pID(pID, start_frame, output_path, frames_path, distance):
     starting_frame = data_tmp['frame'].iloc[0]
     ending_frame = data_tmp['frame'].iloc[-1]
 
-    # data_tmp['frame'].iloc[0], data_tmp['frame'].iloc[-1]
+    # For each frame of the person
     for idx, f in enumerate(range(starting_frame, ending_frame)):
         # Copy and rename of the images from frames folder
         shutil.copy2(frames_path + 'frame' + str(f) + ".jpg", output_path +
                      '/JPEGImages/pID' + str(pID) + '/' + str(idx).zfill(5) + '.jpg')
 
-    # for idx, f in enumerate(data_tmp['frame']):
         if(f in list(data_tmp['frame'])):
             # Conversion from world coordinates of the ground truth to actual pixel coordinates
             curr_x, curr_y = m.World2Pix([data_tmp[data_tmp['frame'] == f]['x'], data_tmp[data_tmp['frame'] == f]['y']])
@@ -292,11 +257,13 @@ def frames_pID(pID, start_frame, output_path, frames_path, distance):
             # Extraction of the closest bounding box to the GT, with relative mask
             dist, mask, bb = find_bounding_box_mask(output_path + '/JPEGImages/pID' + str(pID) + '/' + str(idx).zfill(5) + '.jpg',
                                                     curr_x, curr_y, threshold=BBTHR)
-            if(dist < distance):
+            if(dist < distance): # Save only if the distance is under a threshold
                 print(' - Annotation found in frame ', f)
                 dict_masks_bb[f] = {'id_annotation': str(idx).zfill(
                     5), 'dist': dist, 'mask': mask, 'bb': bb, 'x_GT': curr_x, 'y_GT': curr_y}
 
+
+            # If the user gave it as argument, we collect also the frames around a given one (to increase data size)
             
             if MORE_FRAMES > 3:
               MORE_FRAMES == 3
@@ -307,25 +274,20 @@ def frames_pID(pID, start_frame, output_path, frames_path, distance):
             valid_idx_range = list(range(-MORE_FRAMES, MORE_FRAMES+1))
             valid_idx_range.remove(0) # 0 is the actual frame!
 
-            #DEBUG print('here:', valid_idx_range)
+            # Repeat as we did before, but for the rounded frames
             for idx_subframe in valid_idx_range:
               
               actual_frame = f + idx_subframe
               actual_idx = actual_frame - starting_frame
 
-             # print(idx, f, idx_subframe, actual_idx, actual_frame)
-             # print(actual_frame, valid_frames[0])
-
               if actual_idx in valid_frames:
-                #print(idx, f, idx_subframe, actual_idx, actual_frame)
 
                 curr_x, curr_y = m.World2Pix([data_tmp[data_tmp['frame'] == f]['x'], data_tmp[data_tmp['frame'] == f]['y']])
                 
                 # Extraction of the closest bounding box to the GT, with relative mask
                 dist, mask, bb = find_bounding_box_mask(output_path + '/JPEGImages/pID' + str(pID) + '/' + str(actual_idx).zfill(5) + '.jpg',
                                                         curr_x, curr_y, threshold=BBTHR)
-                
-                #print(output_path + 'JPEGImages/pID' + str(pID) + '/' + str(actual_idx).zfill(5) + '.jpg')                
+                               
                 if(dist < DISTANCE_SUBFRAMES):
                     print(' - Annotation found in frame ', actual_frame)
                     dict_masks_bb[actual_frame] = {'id_annotation': str(actual_idx).zfill(
@@ -388,22 +350,25 @@ if __name__ == '__main__':
     else:
         print(' - Second step: mask using BGS')
 
-    if(MASK_RCNN == 'True'):
+    if(MASK_RCNN == 'True'): # If the user wants Mask RCNN, we just save the masks we collected
         for key in dict_masks_bb.keys():
             plt.imsave(OUTPUT_DIR+'Annotations/pID'+str(PID)+'/'+dict_masks_bb[key]['id_annotation']+'.png',
                        dict_masks_bb[key]['mask'].astype(np.uint8), cmap=cm.binary.reversed())
-    else:
+    else:  # Otherwise train BGS model and then get BGS masks
         pathIn = FRAMES_DIR
 
+
+        # Run for background
         algorithm = bgs.LBAdaptiveSOM()
         # PixelBasedAdaptiveSegmenter
         # MultiLayerBGS
         # LBAdaptiveSOM
         # DPWrenGABGS
         # MixtureOfGaussianV2BGS
-        # .LBSimpleGaussian
+        # LBSimpleGaussian
         # LOBSTER
         
+        # Get the BGS masks of the chosen frames
         for frame_path in [f for f in os.listdir(pathIn) if re.match(r'[0-9]+.*\.jpg', f)]:
             try:
                 frame = cv2.imread(os.path.join(pathIn, frame_path))
@@ -413,6 +378,7 @@ if __name__ == '__main__':
                 print(frame.shape)
                 pass
 
+        # Keep only the part of the image inside the Bounding Box
         for key in dict_masks_bb.keys():
             frame = cv2.imread(os.path.join(pathIn, 'frame'+str(key)+'.jpg'))
             img_output = algorithm.apply(frame)
@@ -424,8 +390,7 @@ if __name__ == '__main__':
             final_img = np.zeros(img_output.shape)
             final_img[y_sup:y_inf, x_sup:x_inf,
                       :] = img_output[y_sup:y_inf, x_sup:x_inf, :]
-            # plt.imsave(OUTPUT_DIR+'Annotations/pID'+str(PID)+'/'+dict_masks_bb[key]['id_annotation']+'.png',
-            #            dict_masks_bb[key]['mask'].astype(np.uint8))
+ 
             plt.imsave(OUTPUT_DIR+'Annotations/pID'+str(PID)+'/'+dict_masks_bb[key]['id_annotation']+'.png',
                        final_img.astype(np.uint8))
 
