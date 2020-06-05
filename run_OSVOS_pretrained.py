@@ -255,11 +255,12 @@ with torch.no_grad():  # PyTorch 0.4.0 style
             # THRESHOLD
             ret, binary_mask = cv2.threshold(pred, args.threshold/255, 1, cv2.THRESH_BINARY)
             plt.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask.astype(np.uint8), cmap=cm.binary.reversed())
+            
+            # if you want you can save the predicted annotation (pred) without
+            # transform it into a binary mask 
             # sm.imsave(os.path.join(results_dir, seq_name,
             #                        os.path.basename(fname[jj]) + '.png'), pred)
 
-            #sm.imsave(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask)
-            #cv2.imwrite(os.path.join(results_dir, seq_name, os.path.basename(fname[jj]) + '.png'), binary_mask)
 
 # tensorboard writer close
 writer.close()
