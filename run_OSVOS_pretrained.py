@@ -6,7 +6,7 @@ from __future__ import division
 
 import os
 import argparse
-import 
+import socket
 
 import timeit
 from datetime import datetime
