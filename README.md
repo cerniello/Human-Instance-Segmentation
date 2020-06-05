@@ -6,7 +6,7 @@ Project for the course Advanced Machine Learning @LaSapienza
 ## Introduction
 
 In this repo we provide the code for Human-Instance-Segmentation from surveillance cameras.
-Our work is based on trying to segment specific persons along a video sequence, given their trajectory annotations.
+Our work is about trying to segment specific persons along a video sequence, given their trajectory annotations.
 
 ## Related work
 The main implementation is based on [OSVOS-PyTorch](https://github.com/kmaninis/OSVOS-PyTorch) code which implements the One-Shot-Video-Object-Segmentation algorithm (you may want to refer to the paper [here](https://arxiv.org/abs/1611.05198))
