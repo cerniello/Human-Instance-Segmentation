@@ -9,7 +9,7 @@ In this repo we provide the code for Human-Instance-Segmentation from surveillan
 Our work is about trying to segment specific persons along a video sequence, given their trajectory annotations.
 
 ## Related work
-The main implementation is based on [OSVOS-PyTorch](https://github.com/kmaninis/OSVOS-PyTorch) code which implements the One-Shot-Video-Object-Segmentation algorithm (you may want to refer to the paper [here](https://arxiv.org/abs/1611.05198))
+The main implementation and the repo structure is based on [OSVOS-PyTorch](https://github.com/kmaninis/OSVOS-PyTorch) code which implements the One-Shot-Video-Object-Segmentation algorithm (you may want to refer to the paper [here](https://arxiv.org/abs/1611.05198))
 
 ## Proposed method explained
 The code is based on two steps:
@@ -137,6 +137,9 @@ python run_OSVOS_pretrained.py --seq_name=pID7 --epochs=200 --output_folder="res
 The algorithm will run with Cuda, if possible. An highly number of epochs is suggested. 
 
 For further explanations run it with --help.
+
+#### Jupyter Notebook Demo
+We provide in this repo a .ipynb notebook runned on Colaboratory with some visualizations.
 
 ## References
 [S. Caelles*, K.K. Maninis*, J. Pont-Tuset, L. Leal-Taixé, D. Cremers, and L. Van Gool - 
