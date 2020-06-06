@@ -134,7 +134,7 @@ For further explanations run it with --help.
 python run_OSVOS_pretrained.py --seq_name=pID7 --epochs=200 --output_folder="results" --batch_size=2
 ```
 
-The algorithm will run with Cuda, if possible. An highly number of epochs is suggested. 
+The algorithm will run with Cuda, if possible. An high number of epochs is suggested. 
 
 For further explanations run it with --help.
 
